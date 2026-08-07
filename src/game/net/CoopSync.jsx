@@ -33,6 +33,7 @@ import {
   sanitizeFireRay,
   sanitizePlayerPosition,
 } from './hostValidation';
+import { rebuildMapRuntime } from '../systems/transitMode';
 
 const SEND_HZ = 20;
 const SNAP_HZ = 16;
@@ -170,10 +171,12 @@ export default function CoopSync() {
           // player could actually have covered since its last packet. A rejected
           // claim leaves the previous position standing rather than writing NaN
           // into world state, which used to go straight back out in the snapshot.
+          // First pose after spawn/join skips the speed drag (host/client spawn
+          // slots can disagree for a frame — dragging left remotes frozen).
           const now = performance.now();
           const elapsed = p._lastInputAt ? (now - p._lastInputAt) / 1000 : 0;
           const moved = sanitizePlayerPosition(
-            p.position,
+            p._lastInputAt ? p.position : null,
             { x: msg.x, y: msg.y, z: msg.z },
             elapsed,
             getActiveMap()?.worldBound
@@ -182,6 +185,9 @@ export default function CoopSync() {
             p.position.x = moved.x;
             p.position.y = moved.y;
             p.position.z = moved.z;
+            p._lastInputAt = now;
+          } else if (Number.isFinite(msg.x) && Number.isFinite(msg.z)) {
+            // Keep timebase moving even on a bad packet so the next budget isn't 0.
             p._lastInputAt = now;
           }
           if (Number.isFinite(msg.yaw)) p.yaw = msg.yaw;
@@ -292,6 +298,25 @@ function tickHost({
   accSnap,
   clamped,
 }) {
+  if (state._transitReseat) {
+    state._transitReseat = false;
+    const spawn = getActiveMap().PLAYER_SPAWN || { x: 0, y: 0, z: 0 };
+    peerPlayers.current.forEach((p, i) => {
+      if (p.status === 'dead' || p.status === 'spectator') return;
+      const ox = ((i % 3) - 1) * 0.85;
+      const oz = Math.floor(i / 3) * 0.85;
+      p.position.x = spawn.x + ox;
+      p.position.y = (spawn.y || 0) + 1.6;
+      p.position.z = spawn.z + oz;
+    });
+    state.position.x = spawn.x;
+    state.position.y = (spawn.y || 0) + 1.6;
+    state.position.z = spawn.z;
+    state.floorY = spawn.y || 0;
+    state.velocityY = 0;
+    state.grounded = true;
+  }
+
   const hostId = state.coopLocalId;
   const hostP = peerPlayers.current.get(hostId);
   if (hostP) {
@@ -511,6 +536,9 @@ function tickHost({
       zombiesAlive: state.zombiesAlive,
       totalKills: state.totalKills,
       matchOver: !!state.coopMatchOver,
+      mapId: state.mapId,
+      transitMode: !!state.transitMode,
+      transitReached: state.transitReached || [],
     });
   }
 }
@@ -591,6 +619,15 @@ function syncHostLocalFromPeer(state, hostP) {
 function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
   if (!msg || msg.type !== 'snap') return;
   const state = stateRef.current;
+
+  state.transitMode = !!msg.transitMode;
+  state.transitReached = msg.transitReached || state.transitReached || [];
+
+  let mapChanged = false;
+  if (msg.mapId && msg.mapId !== state.mapId) {
+    rebuildMapRuntime(state, msg.mapId);
+    mapChanged = true;
+  }
 
   if (msg.doors) {
     Object.keys(msg.doors).forEach((id) => {
@@ -700,15 +737,24 @@ function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
       if (np.weapons) state.weapons = np.weapons;
       if (typeof np.activeWeapon === 'number') state.activeWeapon = np.activeWeapon;
       state.reloading = !!np.reloading;
-      // Soft-correct position if wildly desynced (spawn / teleport)
-      if (
-        typeof np.x === 'number' &&
-        typeof np.z === 'number' &&
-        (Math.abs(state.position.x - np.x) > 8 || Math.abs(state.position.z - np.z) > 8)
-      ) {
-        state.position.x = np.x;
-        state.position.y = np.y;
-        state.position.z = np.z;
+      // Reconcile toward host pose. Hard snap on map change / big gaps; gentle
+      // pull otherwise so clients don't free-run 8m ahead of what the host sees.
+      if (typeof np.x === 'number' && typeof np.z === 'number') {
+        const dx = np.x - state.position.x;
+        const dz = np.z - state.position.z;
+        const err = Math.hypot(dx, dz);
+        if (mapChanged || err > 3.5) {
+          state.position.x = np.x;
+          state.position.y = np.y;
+          state.position.z = np.z;
+        } else if (err > 0.35) {
+          const t = Math.min(1, (err - 0.35) / 3);
+          state.position.x += dx * t;
+          state.position.z += dz * t;
+          if (typeof np.y === 'number') {
+            state.position.y += (np.y - state.position.y) * t;
+          }
+        }
       }
       if (np.status === 'spectator') {
         state.coopSpectating = true;

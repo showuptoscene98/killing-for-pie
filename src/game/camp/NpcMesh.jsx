@@ -258,6 +258,10 @@ function NpcBody({ npc, o, body, pants, sleeve, skin, accent, useKit, useCowboy,
 /** Hub NPC — optional outfitId uses player outfit palette (Max = maxGypsy). */
 export default function NpcMesh({ npc }) {
   const [x, y, z] = npc.position;
+  // Interact proxy only (e.g. Apple — mesh lives on SteveKit)
+  if (npc.interactOnly) {
+    return <group position={[x, y, z]} rotation={[0, npc.yaw || 0, 0]} />;
+  }
   const o = npc.outfitId
     ? resolveOutfit(loadoutFromPreset(npc.outfitId, npc.outfitColor || 'default'))
     : null;

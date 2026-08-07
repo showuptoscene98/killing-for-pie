@@ -254,6 +254,7 @@ export function CampProvider({ children }) {
       round: runStats.round || 0,
       kills: runStats.kills || 0,
       earned,
+      transitReached: runStats.transitReached || [],
     });
     saveCamp(next);
     setCamp(next);

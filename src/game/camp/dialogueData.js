@@ -577,16 +577,16 @@ export function buildDialogue(npcId, camp, { canBuy, costOf } = {}) {
 
   if (npcId === 'steve') {
     const lines = [
-      "Apple's the best dog alive. Period. I'd die for that little guy.",
+      "Apple's the best dog alive. Period. I'd die for that little girl.",
       "You ever just stare at Apple and think… yeah. That's love.",
       "Kanye cured my depression. Graduation. Late Registration. Don't argue.",
       "Apple + Yeezy. That's the whole personality. Don't need anything else.",
       "People say Kanye's crazy. Apple never judges. Neither do I.",
       "I put on Stronger and Apple does that little head tilt. Peak life.",
       "Through the Wire, man. Then I look at Apple. Same energy.",
-      "Would Apple like Donda? Absolutely. He has taste.",
-      "Fishnets are for Apple. So he can see me better. Kanye would get it.",
-      "If zombies eat me, tell Apple I loved him. And tell Kanye thank you.",
+      "Would Apple like Donda? Absolutely. She has taste.",
+      "Fishnets are for Apple. So she can see me better. Kanye would get it.",
+      "If zombies eat me, tell Apple I loved her. And tell Kanye thank you.",
     ];
     const line = lines[Math.floor(Math.random() * lines.length)];
     const nodes = {
@@ -613,7 +613,7 @@ export function buildDialogue(npcId, camp, { canBuy, costOf } = {}) {
         choices: [{ label: 'Respect', action: 'close' }],
       },
       apple: {
-        text: "Apple's right there. Look at him. Perfect. No notes. I'd give him the mystery box if I could.",
+        text: "Apple's right there. Look at her. Perfect. No notes. I'd give her the mystery box if I could. Walk up and talk to her — she bites… emotionally.",
         choices: [
           { label: 'Cute dog', next: 'kanye' },
           { label: 'Bye', action: 'close' },
@@ -629,6 +629,49 @@ export function buildDialogue(npcId, camp, { canBuy, costOf } = {}) {
     nodes.root.choices.push({ label: 'About Apple?', next: 'apple' });
     nodes.root.choices.push({ label: 'About Kanye?', next: 'kanye' });
     nodes.root.choices.push({ label: 'Later', action: 'close' });
+    return { start: 'root', nodes };
+  }
+
+  if (npcId === 'apple') {
+    const lines = [
+      'Woof. …Steve smells like expired fishnets and bad decisions.',
+      'Bark bark. Tell the hat guy his playlist is a cry for help.',
+      'Ruff. Steve thinks fishnets are armor. Steve is wrong. Bark.',
+      'Woof woof. I only stay because the treats are better than his personality.',
+      'Bark. If Steve says "Yeezy" one more time I eat the speaker. Hypothetically. Woof.',
+      'Grr. Straw-hat man talks to me like I asked for a TED talk. I asked for beef.',
+      'Woof. Steve calls himself my dad. I call him unpaid intern. Bark.',
+      'Bark bark. Cute outfit, Steve. Did the apocalypse style you, or did you lose a bet?',
+      'Ruff. He puts on Stronger and stares at me. I put on judgment and stare back.',
+      'Woof. Steve would die for me. I would die for a sandwich. We are not the same. Bark.',
+    ];
+    const line = lines[Math.floor(Math.random() * lines.length)];
+    const nodes = {
+      root: {
+        text: line,
+        choices: [],
+      },
+      again: {
+        text: lines[(lines.indexOf(line) + 1) % lines.length],
+        choices: [
+          { label: '…Again?', next: 'again2' },
+          { label: 'Good dog', action: 'close' },
+        ],
+      },
+      again2: {
+        text: lines[(lines.indexOf(line) + 2) % lines.length],
+        choices: [
+          { label: 'Keep going', next: 'again3' },
+          { label: 'Okay bye', action: 'close' },
+        ],
+      },
+      again3: {
+        text: lines[(lines.indexOf(line) + 3) % lines.length],
+        choices: [{ label: 'Respect, Apple', action: 'close' }],
+      },
+    };
+    nodes.root.choices.push({ label: 'Bark again', next: 'again' });
+    nodes.root.choices.push({ label: 'Scratch behind ear', action: 'close' });
     return { start: 'root', nodes };
   }
 
@@ -713,7 +756,63 @@ export function buildDialogue(npcId, camp, { canBuy, costOf } = {}) {
           { label: 'Walk away', action: 'close' },
         ],
       },
+      transit_pitch: {
+        text: "There's a route through every map — Airfield, bunker, Sofia, farm, house… then Pie Yard last. Rounds keep rolling. Maps change under your feet. I call it Transit. The milk run that never ends.",
+        choices: [
+          {
+            label: 'Accept: Let the Good Times Roll',
+            action: 'acceptQuest:letTheGoodTimesRoll',
+            next: 'transit_accept',
+          },
+          { label: 'Sounds cursed', action: 'close' },
+        ],
+      },
+      transit_accept: {
+        text: "Deploy → Transit. Ride the maps. Hit Pie Yard. Then float back and tell me the good times rolled. Unlock's yours — don't waste the wings.",
+        choices: [{ label: 'Let the good times roll.', action: 'close' }],
+      },
+      transit_busy: {
+        text: "Still not at Pie Yard? Transit doesn't wait. Neither did the milk.",
+        choices: [{ label: 'Working on it.', action: 'close' }],
+      },
+      transit_turned: {
+        text: "You made it to the yard. Maps behind you. Halo's jealous. Take the scrap — I don't spend it.",
+        choices: [{ label: 'Thanks, Imagine.', action: 'close' }],
+      },
+      transit_done: {
+        text: "Transit stays open. Keep rolling if the porch light still bothers you.",
+        choices: [{ label: 'Will do.', action: 'close' }],
+      },
     };
+
+    qInfo.turnIn.forEach((q) => {
+      if (q.id === 'letTheGoodTimesRoll') {
+        nodes.root.choices.push({
+          label: 'Turn in: Let the Good Times Roll',
+          action: 'turnInQuest:letTheGoodTimesRoll',
+          next: 'transit_turned',
+        });
+      }
+    });
+
+    if (canAcceptQuest(camp, 'letTheGoodTimesRoll')) {
+      nodes.root.choices.push({
+        label: 'About Transit…',
+        next: 'transit_pitch',
+      });
+    }
+    if (isQuestActive(camp, 'letTheGoodTimesRoll')) {
+      nodes.root.choices.push({
+        label: "I'm riding Transit",
+        next: 'transit_busy',
+      });
+    }
+    if (isQuestCompleted(camp, 'letTheGoodTimesRoll')) {
+      nodes.root.choices.push({
+        label: 'About Transit…',
+        next: 'transit_done',
+      });
+    }
 
     nodes.root.choices.push({ label: 'Tell me more', next: 'more' });
     nodes.root.choices.push({ label: 'Why the wings?', next: 'wings' });

@@ -98,17 +98,15 @@ export default function HubCoopSync() {
     }
   }, [active, players, isHost, stateRef, remotesRef, sessionRef]);
 
-  // Reset spawn flag when leaving lobby
+  // Reset hub peer map when leaving lobby. Do NOT clear state.coop — match
+  // CoopSync owns that flag, and stomping it here races match start.
   useEffect(() => {
     if (!active) {
       spawned.current = false;
       peerPlayers.current = new Map();
       if (remotesRef.current) remotesRef.current = [];
-      if (stateRef.current) {
-        stateRef.current.coop = false;
-      }
     }
-  }, [active, remotesRef, stateRef]);
+  }, [active, remotesRef]);
 
   useEffect(() => {
     if (!active) return undefined;

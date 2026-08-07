@@ -20,6 +20,8 @@ import {
   HUB_MAP_ID,
   enterHubMap,
 } from './game/map/activeMap';
+import { transitStartMapId } from './game/systems/transitMode';
+import { takePendingMatchOptions } from './game/systems/matchOptions';
 import { toggleGameFullscreen } from './game/display';
 import { stopMenuAmbience } from './game/audio/sound';
 
@@ -108,10 +110,16 @@ function PlayingShell({ onMenu, onEnterCamp, coop }) {
       points: hud.points,
       round: hud.round,
       kills: hud.totalKills,
+      transitReached: stateRef.current?.transitReached || [],
     });
-  }, [hud, depositRun, depositedRef, coop]);
+  }, [hud, depositRun, depositedRef, coop, stateRef]);
 
   const goCamp = useCallback(() => {
+    // Keep the lobby alive and pull the whole squad back to camp.
+    if (coop && coopApi.phase !== 'error') {
+      coopApi.returnToCamp();
+      return;
+    }
     if (coop) coopApi.leave();
     onEnterCamp();
   }, [onEnterCamp, coop, coopApi]);
@@ -121,7 +129,7 @@ function PlayingShell({ onMenu, onEnterCamp, coop }) {
     onMenu();
   }, [onMenu, coop, coopApi]);
 
-  // After a full wipe, auto-return to camp hub
+  // After a full wipe, auto-return to camp hub (host drives the party; clients follow event)
   useEffect(() => {
     if (hud.status !== 'dead') return;
     const matchDone =
@@ -131,9 +139,12 @@ function PlayingShell({ onMenu, onEnterCamp, coop }) {
         !hud.squad?.some((p) => p.status === 'alive' || p.status === 'downed'));
     if (!matchDone || autoCampRef.current) return;
     autoCampRef.current = true;
-    const t = setTimeout(() => goCamp(), 2800);
+    const t = setTimeout(() => {
+      if (coop && !coopApi.isHost && coopApi.phase === 'playing') return;
+      goCamp();
+    }, 2800);
     return () => clearTimeout(t);
-  }, [hud, coop, goCamp]);
+  }, [hud, coop, goCamp, coopApi.isHost, coopApi.phase]);
 
   useEffect(() => {
     if (coop && coopApi.phase === 'error') {
@@ -242,6 +253,7 @@ function AppRoutes() {
   const [joinCode, setJoinCode] = useState('');
   const [coopIntent, setCoopIntent] = useState(null); // 'host' | 'join' | 'browser' | 'friends' | null
   const [soloMapId, setSoloMapId] = useState(() => loadSavedMapId() || DEFAULT_MAP_ID);
+  const [matchBonuses, setMatchBonuses] = useState(null);
 
   // Start Match flips phase before screen — drop hub immediately so HubCanvas
   // doesn't paint the combat map (or worse, re-enter hub) for a frame.
@@ -268,30 +280,59 @@ function AppRoutes() {
   useLayoutEffect(() => {
     if (phase !== 'playing') return;
     if (screen === 'playing' && coopMode) return;
-    const mid = coopMapId || loadSavedMapId() || DEFAULT_MAP_ID;
+    const opts = takePendingMatchOptions();
+    const transit = opts.gameMode === 'transit';
+    const mid = transit
+      ? transitStartMapId()
+      : coopMapId || loadSavedMapId() || DEFAULT_MAP_ID;
     if (mid && mid !== HUB_MAP_ID) setActiveMap(mid);
     clearLastRun();
+    setMatchBonuses({
+      ...bonuses,
+      gameMode: opts.gameMode || 'classic',
+      transitMode: transit,
+    });
     setCoopMode(true);
     stopMenuAmbience();
     setSession((s) => s + 1);
     setScreen('playing');
-  }, [phase, screen, clearLastRun, coopMode, coopMapId]);
+  }, [phase, screen, clearLastRun, coopMode, coopMapId, bonuses]);
+
+  // Party return-to-camp: leave the match UI but keep the co-op session in lobby
+  useLayoutEffect(() => {
+    if (phase !== 'lobby') return;
+    if (screen !== 'playing') return;
+    stopMenuAmbience();
+    enterHubMap();
+    setCoopMode(false);
+    // Don't re-pass joinCode — session is already live; auto-join would reconnect.
+    setJoinCode('');
+    setCoopIntent(null);
+    setHubKey((k) => k + 1);
+    setScreen('camp');
+  }, [phase, screen]);
 
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const start = useCallback(
-    (mapOverride) => {
+    (mapOverride, opts = {}) => {
       clearLastRun();
       setCoopMode(false);
       leave();
       stopMenuAmbience();
-      const mid = mapOverride || soloMapId || loadSavedMapId() || DEFAULT_MAP_ID;
-      setSoloMapId(mid);
+      const pending = takePendingMatchOptions();
+      const gameMode = opts.gameMode || pending.gameMode || 'classic';
+      const transit = gameMode === 'transit';
+      const mid = transit
+        ? transitStartMapId()
+        : mapOverride || soloMapId || loadSavedMapId() || DEFAULT_MAP_ID;
+      if (!transit) setSoloMapId(mid);
       setActiveMap(mid);
+      setMatchBonuses({ ...bonuses, gameMode, transitMode: transit });
       setSession((s) => s + 1);
       setScreen('playing');
     },
-    [clearLastRun, leave, soloMapId]
+    [clearLastRun, leave, soloMapId, bonuses]
   );
 
   const toMenu = useCallback(() => {
@@ -369,7 +410,11 @@ function AppRoutes() {
         />
       )}
       {screen === 'playing' && (
-        <GameProvider key={session} running bonuses={bonuses}>
+        <GameProvider
+          key={session}
+          running
+          bonuses={matchBonuses || bonuses}
+        >
           <PlayingShell
             onMenu={toMenu}
             onEnterCamp={toCamp}

@@ -585,6 +585,73 @@ export class CoopSession {
     this._wsSend({ type: 'start', mapId: this.mapId });
   }
 
+  /**
+   * End the match and put the whole squad back in the camp lobby.
+   * Host executes; clients request. Keeps the session / invite alive.
+   */
+  returnToCamp() {
+    if (this.destroyed) return;
+    if (this.role === 'client') {
+      this.sendToHost({ type: 'requestReturnToCamp' });
+      return;
+    }
+    if (this.role !== 'host') return;
+
+    this.started = false;
+    this.players.forEach((p) => {
+      if (p) p.spectator = false;
+    });
+
+    if (this.backend === 'peer' || this.backend === 'realtime') {
+      const payload = { type: 'returnToCamp', ...this._lobbyFields() };
+      const blast = () => {
+        if (this.destroyed || this.started) return;
+        this._peerBroadcast(payload);
+      };
+      blast();
+      [50, 150, 300, 600, 1200].forEach((ms) => setTimeout(blast, ms));
+      this._setStatus('lobby');
+      this._emit('returnToCamp', this._lobbyPayload());
+      this._emit('lobby', this._lobbyPayload());
+      return;
+    }
+
+    this._wsSend({ type: 'returnToCamp', mapId: this.mapId });
+    // Apply locally too — LAN broadcast includes us, but don't wait on RTT.
+    this._applyReturnToCamp({
+      players: this.players,
+      mapId: this.mapId,
+      roomCode: this.roomCode,
+      joinAddress: this.joinAddress,
+      inviteUrl: this.inviteUrl,
+      hostId: this._hostId || this.localId,
+    });
+  }
+
+  _applyReturnToCamp(msg = {}) {
+    this.started = false;
+    if (Array.isArray(msg.players) && msg.players.length) {
+      this.players = msg.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        isHost: !!p.isHost,
+        spectator: false,
+      }));
+    } else {
+      this.players.forEach((p) => {
+        if (p) p.spectator = false;
+      });
+    }
+    if (msg.roomCode) this.roomCode = msg.roomCode;
+    if (msg.joinAddress) this.joinAddress = msg.joinAddress;
+    if (msg.inviteUrl) this.inviteUrl = msg.inviteUrl;
+    if (msg.mapId) this.mapId = msg.mapId;
+    if (msg.hostId) this._hostId = msg.hostId;
+    this._setStatus('lobby');
+    this._emit('returnToCamp', this._lobbyPayload());
+    this._emit('lobby', this._lobbyPayload());
+  }
+
   setMap(mapId) {
     if (this.started) return;
     if (!mapId) return;
@@ -1187,6 +1254,10 @@ export class CoopSession {
       if (msg.type === 'toHost') {
         const peerId = conn.__kfpId || conn.peer;
         if (!peerId) return;
+        if (msg.msg?.type === 'requestReturnToCamp') {
+          this.returnToCamp();
+          return;
+        }
         this._emit('clientMsg', { peerId, msg: msg.msg });
         return;
       }
@@ -1399,6 +1470,11 @@ export class CoopSession {
       return;
     }
 
+    if (msg.type === 'returnToCamp') {
+      this._applyReturnToCamp(msg);
+      return;
+    }
+
     if (msg.type === 'playerJoined') {
       const id = msg.peerId;
       if (id && !this.players.find((p) => p.id === id)) {
@@ -1422,6 +1498,10 @@ export class CoopSession {
     }
 
     if (msg.type === 'fromClient') {
+      if (msg.msg?.type === 'requestReturnToCamp') {
+        this.returnToCamp();
+        return;
+      }
       this._emit('clientMsg', { peerId: msg.peerId, msg: msg.msg });
       return;
     }

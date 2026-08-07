@@ -97,6 +97,22 @@ const PROP_PARKOUR = {
     solidH: 1.85,
     solid: true,
   },
+  tank: {
+    /** hull long on local Z; yaw ~PI/2 spans the gate */
+    w: 3.4,
+    d: 7.2,
+    topFromBase: 2.35,
+    solidH: 2.35,
+    solid: true,
+  },
+  shantyRoof: {
+    w: 10.5,
+    d: 8.2,
+    topFromBase: 3.1,
+    solidH: 0.2,
+    solid: false,
+    sizeFromProp: true,
+  },
   sandbags: {
     w: 1.9,
     d: 0.55,

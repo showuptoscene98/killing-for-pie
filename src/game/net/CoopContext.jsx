@@ -105,6 +105,14 @@ export function CoopProvider({ children }) {
         setPhase('playing');
         clearInviteFromUrl();
       }
+      if (event === 'returnToCamp') {
+        const roster = Array.isArray(payload?.players) ? payload.players : [];
+        if (roster.length) setPlayers(roster);
+        setJoinAsSpectator(false);
+        setError('');
+        if (payload?.mapId) setMapIdState(payload.mapId);
+        setPhase('lobby');
+      }
       if (event === 'playerJoined') {
         setPlayers((prev) => {
           let next;
@@ -294,6 +302,14 @@ export function CoopProvider({ children }) {
     [ensureSession, mapId, social]
   );
 
+  const returnToCamp = useCallback(() => {
+    const session = ensureSession();
+    session.returnToCamp();
+    if (session.role === 'host') {
+      social?.heartbeatLobby?.({ status: 'open', player_count: session.players.length });
+    }
+  }, [ensureSession, social]);
+
   const leave = useCallback(() => {
     social?.closeLobby?.();
     ensureSession().destroy();
@@ -336,6 +352,7 @@ export function CoopProvider({ children }) {
       join,
       joinLan,
       startGame,
+      returnToCamp,
       leave,
       consumePendingJoin,
       isHost: role === 'host',
@@ -360,6 +377,7 @@ export function CoopProvider({ children }) {
       join,
       joinLan,
       startGame,
+      returnToCamp,
       leave,
       consumePendingJoin,
       joinAsSpectator,

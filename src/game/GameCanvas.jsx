@@ -23,7 +23,8 @@ function CameraLayerFix() {
 }
 
 function Scene({ coop }) {
-  const { stateRef, zombiesRef } = useGame();
+  const { stateRef, zombiesRef, hud } = useGame();
+  const mapId = hud.mapId || getActiveMap().id;
   const outdoor = !!getActiveMap().outdoor;
 
   const onShoot = useCallback(
@@ -61,7 +62,7 @@ function Scene({ coop }) {
         color={DD.candle}
         decay={1.2}
       />
-      <MapWorld key={getActiveMap().id} />
+      <MapWorld key={mapId} />
       <ZombieManager />
       <PieProjectiles />
       <Powerups />

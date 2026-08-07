@@ -10,6 +10,7 @@ import {
 import { initWindowState } from './WindowSystem';
 import { createMysteryBoxState } from './MysteryBoxSystem';
 import { createPowerupState } from './PowerupSystem';
+import { transitStartMapId } from './transitMode';
 
 const DEFAULT_BONUSES = {
   hpMult: 1,
@@ -18,9 +19,14 @@ const DEFAULT_BONUSES = {
 };
 
 export function createInitialGameState(bonuses = DEFAULT_BONUSES) {
+  const transit = bonuses.gameMode === 'transit' || !!bonuses.transitMode;
   let map = getActiveMap();
-  // Never boot a combat session on the hub yard (coop Start Match race used to)
-  if (map?.hub) {
+  if (transit) {
+    // Transit always opens on Airfield (nacht), not the deploy picker map
+    map = getMap(transitStartMapId());
+    setActiveMap(map.id);
+  } else if (map?.hub) {
+    // Never boot a combat session on the hub yard (coop Start Match race used to)
     const mid = loadSavedMapId() || DEFAULT_MAP_ID;
     // Never use hub id for combat — Pie Yard / saved combat only
     map = getMap(mid === 'campHub' ? DEFAULT_MAP_ID : mid);
@@ -41,6 +47,10 @@ export function createInitialGameState(bonuses = DEFAULT_BONUSES) {
   return {
     status: 'playing',
     mapId: map.id,
+    /** 'classic' | 'transit' — set by deploy / createInitial options */
+    gameMode: bonuses.gameMode || 'classic',
+    transitMode: bonuses.gameMode === 'transit' || !!bonuses.transitMode,
+    transitReached: [],
     points: POINTS.starting,
     round: 0,
     roundPhase: 'intermission',

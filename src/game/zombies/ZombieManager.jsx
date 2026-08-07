@@ -463,7 +463,7 @@ export default function ZombieManager() {
     ) {
       state.status = 'playing';
     }
-    tickRound(state, clampedDt, gatedSpawn);
+    tickRound(state, clampedDt, gatedSpawn, zombiesRef);
     if (
       state.coop &&
       state.isHost &&

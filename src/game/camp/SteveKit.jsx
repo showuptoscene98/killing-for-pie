@@ -78,10 +78,10 @@ function FishnetSleeve({ position, rotation = [0, 0, 0], args }) {
   );
 }
 
-function AppleDog({ offset = [0.55, 0, 0.15] }) {
+export function AppleDog({ offset = [0.55, 0, 0.15], showLabel = true }) {
   const root = useRef();
-  const fur = '#e8dcc8';
-  const ear = '#d4c4a8';
+  const fur = '#f0d020';
+  const ear = '#d4a810';
   const nose = '#1a1410';
   const collar = '#c42828';
 
@@ -151,20 +151,22 @@ function AppleDog({ offset = [0.55, 0, 0.15] }) {
           <boxGeometry args={[0.18, 0.03, 0.18]} />
           <Toon color={collar} />
         </mesh>
-        <Html position={[0, 0.55, 0]} center distanceFactor={8} style={{ pointerEvents: 'none' }}>
-          <div
-            style={{
-              fontFamily: 'Georgia, serif',
-              fontSize: 10,
-              color: DD.bone || '#e8e0d0',
-              textShadow: '0 1px 3px #000',
-              whiteSpace: 'nowrap',
-              fontWeight: 700,
-            }}
-          >
-            Apple
-          </div>
-        </Html>
+        {showLabel && (
+          <Html position={[0, 0.55, 0]} center distanceFactor={8} style={{ pointerEvents: 'none' }}>
+            <div
+              style={{
+                fontFamily: 'Georgia, serif',
+                fontSize: 10,
+                color: DD.bone || '#e8e0d0',
+                textShadow: '0 1px 3px #000',
+                whiteSpace: 'nowrap',
+                fontWeight: 700,
+              }}
+            >
+              Apple
+            </div>
+          </Html>
+        )}
       </group>
     </group>
   );

@@ -237,6 +237,30 @@ export const QUESTS = {
     ],
     reward: { scrap: 1300 },
   },
+
+  /** Imagine — unlocks Transit mode on accept */
+  letTheGoodTimesRoll: {
+    id: 'letTheGoodTimesRoll',
+    title: 'Let the Good Times Roll',
+    giver: 'imagine',
+    blurb: 'Ride the maps. End at Pie Yard. Milk run across the whole damn world.',
+    unlockOnAccept: { unlockMode: 'transit' },
+    steps: [
+      {
+        id: 'reach_camp',
+        type: 'reachTransitMap',
+        mapId: 'camp',
+        label: 'Reach Pie Yard in Transit mode',
+      },
+      {
+        id: 'turn_in',
+        type: 'talk',
+        npcId: 'imagine',
+        label: 'Tell Imagine you made it',
+      },
+    ],
+    reward: { scrap: 900 },
+  },
 };
 
 export const QUEST_LIST = Object.values(QUESTS);

@@ -21,6 +21,12 @@ import {
   loadSavedMapId,
   getActiveMap,
 } from '../map/activeMap';
+import {
+  TRANSIT_MAP_ORDER,
+  TRANSIT_ROUNDS_PER_MAP,
+  transitStartMapId,
+} from '../systems/transitMode';
+import { setPendingMatchOptions } from '../systems/matchOptions';
 import { inputState } from '../player/PlayerControls';
 import {
   play,
@@ -28,7 +34,11 @@ import {
   stopMenuAmbience,
 } from '../audio/sound';
 import { loadCamp, saveCamp, canBuyUpgrade, upgradeCost } from './campData';
-import { onTalkNpc, acceptQuest as acceptQuestFn } from './questSystem';
+import {
+  onTalkNpc,
+  acceptQuest as acceptQuestFn,
+  isModeUnlocked,
+} from './questSystem';
 import { PLAYER } from '../constants';
 
 function HubInteractPrompt() {
@@ -51,6 +61,8 @@ function CampHUD({
   setMapId,
   deployMode,
   setDeployMode,
+  gameMode,
+  setGameMode,
   joinInput,
   setJoinInput,
   squadBusy,
@@ -76,6 +88,8 @@ function CampHUD({
   const [friendBusy, setFriendBusy] = useState(false);
   const connecting = squadPhase === 'connecting';
   const inLobby = squadPhase === 'lobby' || connecting;
+  const transitUnlocked = isModeUnlocked(camp, 'transit');
+  const transitSelected = gameMode === 'transit';
 
   useEffect(() => {
     if (!deployOpen || (deployMode !== 'browser' && deployMode !== 'friends')) return;
@@ -264,7 +278,7 @@ function CampHUD({
 
             {!inLobby && (
               <>
-                <p className="coop-section-label">Mode</p>
+                <p className="coop-section-label">Lobby</p>
                 <div className="hub-deploy-modes">
                   {[
                     { id: 'solo', label: 'Solo' },
@@ -291,6 +305,56 @@ function CampHUD({
             )}
 
             {(deployMode === 'solo' || deployMode === 'host' || inLobby) && (
+              <>
+                <p className="coop-section-label">Game Type</p>
+                <div className="hub-deploy-modes">
+                  <button
+                    type="button"
+                    className={`hub-mode-btn${gameMode === 'classic' ? ' is-selected' : ''}`}
+                    disabled={inLobby && !isHost}
+                    onClick={() => {
+                      unlockAudio();
+                      play('menuHover');
+                      setGameMode('classic');
+                    }}
+                  >
+                    Classic
+                  </button>
+                  <button
+                    type="button"
+                    className={`hub-mode-btn${transitSelected ? ' is-selected' : ''}`}
+                    disabled={!transitUnlocked || (inLobby && !isHost)}
+                    title={
+                      transitUnlocked
+                        ? 'Progress through every map as rounds rise — Pie Yard last'
+                        : 'Talk to Imagine — quest: Let the Good Times Roll'
+                    }
+                    onClick={() => {
+                      if (!transitUnlocked) return;
+                      unlockAudio();
+                      play('menuHover');
+                      setGameMode('transit');
+                    }}
+                  >
+                    {transitUnlocked ? 'Transit' : 'Transit 🔒'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {(deployMode === 'solo' || deployMode === 'host' || inLobby) &&
+              transitSelected && (
+                <div className="coop-map-card is-selected" style={{ cursor: 'default' }}>
+                  <span className="coop-map-name">Transit Route</span>
+                  <span className="coop-map-blurb">
+                    {TRANSIT_MAP_ORDER.map((id) => mapLabel(id)).join(' → ')}. Every{' '}
+                    {TRANSIT_ROUNDS_PER_MAP} rounds the map shifts. Pie Yard is the finale.
+                  </span>
+                </div>
+              )}
+
+            {(deployMode === 'solo' || deployMode === 'host' || inLobby) &&
+              !transitSelected && (
               <>
                 <p className="coop-section-label">Map</p>
                 <div className="coop-map-cards">
@@ -632,9 +696,14 @@ function CampHUD({
                 <button
                   type="button"
                   className="menu-btn"
-                  onClick={() => onConfirmDeploy(mapId)}
+                  onClick={() =>
+                    onConfirmDeploy(
+                      transitSelected ? transitStartMapId() : mapId,
+                      gameMode
+                    )
+                  }
                 >
-                  Deploy Solo
+                  {transitSelected ? 'Deploy Transit' : 'Deploy Solo'}
                 </button>
               )}
               {!inLobby && deployMode === 'host' && (
@@ -642,7 +711,12 @@ function CampHUD({
                   type="button"
                   className="menu-btn"
                   disabled={squadBusy}
-                  onClick={() => onCreateSquad(mapId)}
+                  onClick={() =>
+                    onCreateSquad(
+                      transitSelected ? transitStartMapId() : mapId,
+                      gameMode
+                    )
+                  }
                 >
                   {squadBusy ? 'Hosting…' : 'Create Invite'}
                 </button>
@@ -662,7 +736,12 @@ function CampHUD({
                   type="button"
                   className="menu-btn"
                   disabled={squadBusy || squadPhase === 'connecting'}
-                  onClick={() => onStartMatch(mapId)}
+                  onClick={() =>
+                    onStartMatch(
+                      transitSelected ? transitStartMapId() : mapId,
+                      gameMode
+                    )
+                  }
                 >
                   Start Match · {(players || []).length}/{MAX_COOP_PLAYERS}
                 </button>
@@ -758,6 +837,7 @@ function HubShellInner({
   const [deployOpen, setDeployOpen] = useState(false);
   const [blackjackOpen, setBlackjackOpen] = useState(false);
   const [deployMode, setDeployMode] = useState('solo');
+  const [gameMode, setGameMode] = useState('classic');
   const [joinInput, setJoinInput] = useState('');
   const [mapId, setMapId] = useState(() => loadSavedMapId());
   const [dialogue, setDialogue] = useState(null);
@@ -1027,21 +1107,24 @@ function HubShellInner({
   );
 
   const onConfirmDeploy = useCallback(
-    (id) => {
+    (id, mode = 'classic') => {
       leave();
+      setPendingMatchOptions({ gameMode: mode });
       setActiveMap(id);
-      onDeploy(id);
+      onDeploy(id, { gameMode: mode });
     },
     [onDeploy, leave]
   );
 
   const onCreateSquad = useCallback(
-    async (id) => {
+    async (id, mode = 'classic') => {
       unlockAudio();
       play('menuClick');
       setJoinHint('');
       setSquadBusy(true);
       try {
+        setGameMode(mode);
+        setPendingMatchOptions({ gameMode: mode });
         setMap(id, { applyWorld: false });
         await host(localName, id);
       } catch {
@@ -1084,9 +1167,11 @@ function HubShellInner({
   );
 
   const onStartMatch = useCallback(
-    (id) => {
+    (id, mode = 'classic') => {
       unlockAudio();
       play('menuClick');
+      setGameMode(mode);
+      setPendingMatchOptions({ gameMode: mode });
       // Stash + apply combat map NOW — HubShell must not be able to revert to hub
       setMap(id, { applyWorld: true });
       startGame(id);
@@ -1125,6 +1210,8 @@ function HubShellInner({
         setMapId={setMapId}
         deployMode={deployMode}
         setDeployMode={setDeployMode}
+        gameMode={gameMode}
+        setGameMode={setGameMode}
         joinInput={joinInput}
         setJoinInput={setJoinInput}
         squadBusy={squadBusy}

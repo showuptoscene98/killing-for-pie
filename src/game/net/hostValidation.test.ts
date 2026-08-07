@@ -56,7 +56,7 @@ describe('sanitizePlayerPosition', () => {
     const out = sanitizePlayerPosition(prev, { x: 14, y: 1.6, z: 0 }, 1 / 15, 15.5)!;
     // Still heading the right way, but nowhere near the claimed 14m hop.
     expect(out.x).toBeGreaterThan(0);
-    expect(out.x).toBeLessThan(4);
+    expect(out.x).toBeLessThan(6);
   });
 
   it('does not punish a client that went quiet for a moment', () => {

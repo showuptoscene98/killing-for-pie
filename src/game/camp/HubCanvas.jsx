@@ -210,7 +210,7 @@ export default function HubCanvas({ onInteract, promptRef, controlsEnabled }) {
       shadows={false}
       dpr={dpr}
       frameloop="always"
-      camera={{ fov: 72, near: 0.15, far: 70, position: [0, 1.6, -8] }}
+      camera={{ fov: 72, near: 0.15, far: 110, position: [0, 1.6, -14] }}
       gl={{
         antialias: false,
         powerPreference: 'high-performance',

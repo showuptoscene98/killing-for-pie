@@ -44,6 +44,11 @@ function applyReward(camp, reward) {
     unlocked.add(reward.unlockOutfit);
     next = { ...next, unlockedOutfits: [...unlocked] };
   }
+  if (reward.unlockMode) {
+    const modes = new Set(next.unlockedModes || []);
+    modes.add(reward.unlockMode);
+    next = { ...next, unlockedModes: [...modes] };
+  }
   return next;
 }
 
@@ -103,11 +108,28 @@ export function acceptQuest(camp, questId) {
       reachedHeight: false,
     },
   };
-  return {
+  let next = {
     ...camp,
     parkour: { ...pk },
     quests: { ...cloneQuests(quests), active },
   };
+  if (q.unlockOnAccept) {
+    next = applyReward(next, q.unlockOnAccept);
+  }
+  return next;
+}
+
+export function isModeUnlocked(camp, modeId) {
+  if (!modeId || modeId === 'classic') return true;
+  if ((camp.unlockedModes || []).includes(modeId)) return true;
+  // Completing the Imagine quest also keeps Transit unlocked
+  if (modeId === 'transit' && isQuestCompleted(camp, 'letTheGoodTimesRoll')) {
+    return true;
+  }
+  if (modeId === 'transit' && isQuestActive(camp, 'letTheGoodTimesRoll')) {
+    return true;
+  }
+  return false;
 }
 
 export function onTalkNpc(camp, npcId) {
@@ -198,6 +220,12 @@ function stepSatisfied(camp, step, st, runEvent) {
   if (step.type === 'reachHeight') {
     return !!st.reachedHeight || (ensureParkour(camp).maxHeight || 0) >= (step.height || 2);
   }
+  if (step.type === 'reachTransitMap') {
+    return (
+      (st.progress || 0) >= 1 ||
+      !!(runEvent?.transitReached || []).includes(step.mapId)
+    );
+  }
   return false;
 }
 
@@ -224,8 +252,8 @@ export function onUpgradePurchased(camp, upgradeId) {
   return changed ? next : camp;
 }
 
-export function onRunDeposited(camp, { round = 0, kills = 0, earned = 0 } = {}) {
-  const runEvent = { round, kills, earned };
+export function onRunDeposited(camp, { round = 0, kills = 0, earned = 0, transitReached = [] } = {}) {
+  const runEvent = { round, kills, earned, transitReached };
   let next = camp;
   let changed = false;
   const quests = ensureQuestState(next);
@@ -241,10 +269,36 @@ export function onRunDeposited(camp, { round = 0, kills = 0, earned = 0 } = {}) 
     else if (step.type === 'getKills' && kills >= (step.count || 1)) ok = true;
     else if (step.type === 'depositScrap' && earned >= (step.amount || 1))
       ok = true;
+    else if (
+      step.type === 'reachTransitMap' &&
+      (transitReached || []).includes(step.mapId)
+    )
+      ok = true;
     else if (step.type === 'or' && stepSatisfied(next, step, st, runEvent))
       ok = true;
 
     if (ok) {
+      st.progress = 1;
+      const result = advanceStep(next, ensureQuestState(next), qid, q);
+      next = result.camp;
+      changed = true;
+    }
+  });
+  return changed ? next : camp;
+}
+
+/** Mid-run: arrived at a Transit destination map. */
+export function onTransitMapReached(camp, mapId) {
+  if (!mapId) return camp;
+  let next = camp;
+  let changed = false;
+  const quests = ensureQuestState(next);
+  Object.keys({ ...quests.active }).forEach((qid) => {
+    const q = getQuest(qid);
+    const st = ensureQuestState(next).active[qid];
+    if (!q || !st) return;
+    const step = q.steps[st.stepIndex];
+    if (step?.type === 'reachTransitMap' && step.mapId === mapId) {
       st.progress = 1;
       const result = advanceStep(next, ensureQuestState(next), qid, q);
       next = result.camp;

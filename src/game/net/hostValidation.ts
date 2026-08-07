@@ -42,8 +42,12 @@ interface MapLike {
 
 /** A slide is the fastest legitimate movement; the margin covers camp buffs. */
 const MAX_SPEED = PLAYER.slideSpeed * 1.4;
-/** Absorbs a dropped packet or two without rubber-banding an honest client. */
-const STEP_SLACK = 1.5;
+/** Absorbs bursty/late packets without freezing an honest client on the host. */
+const STEP_SLACK = 3.5;
+/** Don't starve the budget when two packets share a timestamp. */
+const MIN_STEP_ELAPSED = 1 / 20;
+/** Cap so a stalled peer can still catch up after a hitch, not bank minutes. */
+const MAX_STEP_ELAPSED = 2.5;
 /** Falling out of the world and flying both land outside this band. */
 const MIN_Y = -6;
 const MAX_Y = 14;
@@ -98,8 +102,12 @@ export function sanitizePlayerPosition(
   let z = clamp(claimed.z, -limit, limit);
 
   if (isFiniteVec3(prev)) {
-    const budget =
-      MAX_SPEED * clamp(Number.isFinite(elapsed) ? elapsed : 0, 0, 1) + STEP_SLACK;
+    const dt = clamp(
+      Number.isFinite(elapsed) ? elapsed : MIN_STEP_ELAPSED,
+      MIN_STEP_ELAPSED,
+      MAX_STEP_ELAPSED
+    );
+    const budget = MAX_SPEED * dt + STEP_SLACK;
     const dx = x - prev.x;
     const dy = y - prev.y;
     const dz = z - prev.z;

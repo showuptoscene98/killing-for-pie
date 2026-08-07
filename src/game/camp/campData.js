@@ -79,6 +79,7 @@ export function defaultCampState() {
     achievements: defaultAchievementState(),
     quests: defaultQuestState(),
     parkour: { jumps: 0, slides: 0, highLands: 0, maxHeight: 0 },
+    unlockedModes: [],
   };
 }
 
@@ -94,6 +95,9 @@ function normalizeCamp(parsed) {
       : [],
     achievements: normalizeAchievements(parsed.achievements),
     quests: normalizeQuests(parsed.quests),
+    unlockedModes: Array.isArray(parsed.unlockedModes)
+      ? [...parsed.unlockedModes]
+      : [],
     parkour: {
       jumps: Math.max(0, parsed.parkour?.jumps | 0),
       slides: Math.max(

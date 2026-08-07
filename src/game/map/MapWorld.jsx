@@ -974,6 +974,233 @@ function CrashedHeli({ position, yaw = 0 }) {
   );
 }
 
+/** Rusted MBT hull — blocks a gate like the old crashed heli */
+function RundownTank({ position, yaw = 0 }) {
+  const olive = '#3a4228';
+  const oliveDark = '#2a3220';
+  const rust = '#6a3a22';
+  const metal = '#5a5850';
+  const track = '#2a2820';
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      <group position={[0, 0.15, 0]} rotation={[0.04, 0, 0.06]}>
+        {/* Hull */}
+        <mesh position={[0, 0.85, 0]} castShadow>
+          <boxGeometry args={[2.6, 1.1, 5.4]} />
+          <Toon color={olive} />
+        </mesh>
+        {/* Front glacis */}
+        <mesh position={[0, 0.7, 2.55]} rotation={[0.35, 0, 0]} castShadow>
+          <boxGeometry args={[2.5, 0.7, 1.1]} />
+          <Toon color={oliveDark} />
+        </mesh>
+        {/* Turret */}
+        <mesh position={[0.15, 1.65, -0.2]} castShadow>
+          <boxGeometry args={[2.0, 0.85, 2.4]} />
+          <Toon color={olive} />
+        </mesh>
+        {/* Bustle / ammo rack dent */}
+        <mesh position={[0.15, 1.55, -1.55]} castShadow>
+          <boxGeometry args={[1.7, 0.65, 0.9]} />
+          <Toon color={oliveDark} />
+        </mesh>
+        {/* Bent barrel */}
+        <mesh position={[0.1, 1.7, 2.4]} rotation={[0.12, 0.08, 0.15]} castShadow>
+          <cylinderGeometry args={[0.12, 0.14, 3.2, 8]} />
+          <Toon color={metal} />
+        </mesh>
+        <mesh position={[0.35, 1.55, 3.9]} rotation={[0.4, 0.2, 0.5]}>
+          <cylinderGeometry args={[0.1, 0.12, 0.8, 6]} />
+          <Toon color={rust} />
+        </mesh>
+        {/* Mantlet */}
+        <mesh position={[0.1, 1.7, 1.15]}>
+          <boxGeometry args={[0.7, 0.55, 0.45]} />
+          <Toon color={oliveDark} />
+        </mesh>
+        {/* Tracks */}
+        <mesh position={[-1.45, 0.45, 0]} castShadow>
+          <boxGeometry args={[0.55, 0.75, 5.0]} />
+          <Toon color={track} />
+        </mesh>
+        <mesh position={[1.45, 0.45, 0]} castShadow>
+          <boxGeometry args={[0.55, 0.75, 5.0]} />
+          <Toon color={track} />
+        </mesh>
+        {/* Road wheels stubs */}
+        {[-1.8, -0.6, 0.6, 1.8].map((z, i) => (
+          <group key={i}>
+            <mesh position={[-1.45, 0.28, z]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.28, 0.28, 0.2, 8]} />
+              <Toon color={metal} />
+            </mesh>
+            <mesh position={[1.45, 0.28, z]} rotation={[0, 0, Math.PI / 2]}>
+              <cylinderGeometry args={[0.28, 0.28, 0.2, 8]} />
+              <Toon color={i === 2 ? rust : metal} />
+            </mesh>
+          </group>
+        ))}
+        {/* Cupola */}
+        <mesh position={[0.55, 2.2, -0.1]}>
+          <cylinderGeometry args={[0.35, 0.38, 0.35, 8]} />
+          <Toon color={oliveDark} />
+        </mesh>
+        {/* Scorch / rust panels */}
+        <mesh position={[-1.32, 1.0, 0.8]}>
+          <boxGeometry args={[0.06, 0.5, 1.2]} />
+          <Toon color={rust} />
+        </mesh>
+        <mesh position={[1.32, 0.95, -1.0]}>
+          <boxGeometry args={[0.06, 0.4, 0.9]} />
+          <Toon color="#1a1814" />
+        </mesh>
+        {/* Antenna stub */}
+        <mesh position={[-0.6, 2.35, -0.8]} rotation={[0.2, 0, 0.3]}>
+          <cylinderGeometry args={[0.02, 0.025, 1.1, 5]} />
+          <Toon color={metal} />
+        </mesh>
+      </group>
+      {/* Debris */}
+      <mesh position={[-1.6, 0.12, 2.2]} rotation={[0, 0.5, 0]}>
+        <boxGeometry args={[0.8, 0.2, 0.55]} />
+        <Toon color={rust} />
+      </mesh>
+      <mesh position={[1.8, 0.1, -1.5]} rotation={[0, -0.4, 0]}>
+        <boxGeometry args={[0.7, 0.18, 0.9]} />
+        <Toon color={metal} />
+      </mesh>
+      <mesh position={[0.2, 0.08, 3.1]}>
+        <boxGeometry args={[1.4, 0.12, 1.0]} />
+        <Toon color="#2a2218" />
+      </mesh>
+    </group>
+  );
+}
+
+/** Corrugated lean-to roof over the market pad */
+function ShantyRoof({ position, size = [10, 3, 8], yaw = 0 }) {
+  const [w, h, d] = size;
+  const postH = h - 0.15;
+  const wood = '#5a4030';
+  const tin = '#6a6860';
+  const tinDark = '#4a4840';
+  const rust = '#6a3a22';
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      {/* Corner posts */}
+      {[
+        [-w / 2 + 0.25, d / 2 - 0.25],
+        [w / 2 - 0.25, d / 2 - 0.25],
+        [-w / 2 + 0.25, -d / 2 + 0.25],
+        [w / 2 - 0.25, -d / 2 + 0.25],
+      ].map(([x, z], i) => (
+        <mesh key={i} position={[x, postH / 2, z]} castShadow>
+          <boxGeometry args={[0.18, postH, 0.18]} />
+          <Toon color={wood} />
+        </mesh>
+      ))}
+      {/* Mid posts */}
+      <mesh position={[0, postH / 2, d / 2 - 0.25]} castShadow>
+        <boxGeometry args={[0.16, postH, 0.16]} />
+        <Toon color={wood} />
+      </mesh>
+      <mesh position={[0, postH / 2, -d / 2 + 0.25]} castShadow>
+        <boxGeometry args={[0.16, postH, 0.16]} />
+        <Toon color={wood} />
+      </mesh>
+      {/* Beams */}
+      <mesh position={[0, h - 0.2, 0]} castShadow>
+        <boxGeometry args={[w - 0.2, 0.16, 0.2]} />
+        <Toon color={wood} />
+      </mesh>
+      <mesh position={[0, h - 0.2, d / 2 - 0.3]} castShadow>
+        <boxGeometry args={[w - 0.3, 0.14, 0.16]} />
+        <Toon color={wood} />
+      </mesh>
+      <mesh position={[0, h - 0.2, -d / 2 + 0.3]} castShadow>
+        <boxGeometry args={[w - 0.3, 0.14, 0.16]} />
+        <Toon color={wood} />
+      </mesh>
+      {/* Corrugated roof panels (slight pitch) */}
+      <mesh position={[0, h, 0]} rotation={[0.06, 0, 0]} castShadow>
+        <boxGeometry args={[w, 0.08, d]} />
+        <Toon color={tin} />
+      </mesh>
+      <mesh position={[-w * 0.22, h + 0.06, 0.1]} rotation={[0.06, 0, 0]}>
+        <boxGeometry args={[w * 0.35, 0.04, d * 0.7]} />
+        <Toon color={tinDark} />
+      </mesh>
+      <mesh position={[w * 0.2, h + 0.05, -0.2]} rotation={[0.06, 0, 0]}>
+        <boxGeometry args={[w * 0.3, 0.04, d * 0.55]} />
+        <Toon color={rust} />
+      </mesh>
+      {/* Tarp scraps */}
+      <mesh position={[-w * 0.15, h * 0.55, d / 2 - 0.1]} rotation={[0.1, 0, 0.05]}>
+        <boxGeometry args={[w * 0.4, 1.2, 0.04]} />
+        <meshLambertMaterial color="#4a5038" />
+      </mesh>
+    </group>
+  );
+}
+
+/** Wall-mounted torch with flicker — hub outdoor courts */
+function WallTorch({ position, yaw = 0 }) {
+  const light = useRef();
+  const flame = useRef();
+  const seed = useMemo(
+    () => (position[0] * 11.3 + position[1] * 4.7 + position[2] * 8.1) % 100,
+    [position]
+  );
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    const flicker =
+      0.7 +
+      Math.sin(t * 9.2 + seed) * 0.14 +
+      Math.sin(t * 21.5 + seed * 1.9) * 0.1 +
+      (Math.sin(t * 37 + seed * 0.7) > 0.9 ? -0.4 : 0);
+    if (light.current) light.current.intensity = Math.max(0.12, flicker * 1.35);
+    if (flame.current?.material) {
+      flame.current.material.emissiveIntensity = 0.6 + flicker * 1.2;
+      flame.current.scale.y = 0.85 + flicker * 0.35;
+    }
+  });
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      {/* Bracket */}
+      <mesh position={[0, 0, 0.08]}>
+        <boxGeometry args={[0.12, 0.35, 0.18]} />
+        <Toon color="#3a3020" />
+      </mesh>
+      <mesh position={[0, -0.15, 0.22]} rotation={[0.4, 0, 0]}>
+        <boxGeometry args={[0.08, 0.08, 0.35]} />
+        <Toon color="#4a4030" />
+      </mesh>
+      {/* Bowl */}
+      <mesh position={[0, 0.05, 0.38]}>
+        <cylinderGeometry args={[0.12, 0.16, 0.14, 8]} />
+        <Toon color="#5a4030" />
+      </mesh>
+      {/* Flame */}
+      <mesh ref={flame} position={[0, 0.28, 0.38]}>
+        <coneGeometry args={[0.08, 0.32, 6]} />
+        <meshStandardMaterial
+          color="#ff6a20"
+          emissive="#ff4400"
+          emissiveIntensity={1.1}
+        />
+      </mesh>
+      <pointLight
+        ref={light}
+        position={[0, 0.35, 0.45]}
+        intensity={1.2}
+        distance={7}
+        color="#ff7020"
+        decay={1.6}
+      />
+    </group>
+  );
+}
+
 /** Low sandbag berm — camp fortification */
 function Sandbags({ position, yaw = 0, count = 3 }) {
   const bags = [];
@@ -1339,6 +1566,18 @@ function MapProp({ prop }) {
       return <Tractor position={prop.position} yaw={prop.yaw || 0} />;
     case 'crashedHeli':
       return <CrashedHeli position={prop.position} yaw={prop.yaw || 0} />;
+    case 'tank':
+      return <RundownTank position={prop.position} yaw={prop.yaw || 0} />;
+    case 'shantyRoof':
+      return (
+        <ShantyRoof
+          position={prop.position}
+          size={prop.size || [10, 3, 8]}
+          yaw={prop.yaw || 0}
+        />
+      );
+    case 'wallTorch':
+      return <WallTorch position={prop.position} yaw={prop.yaw || 0} />;
     case 'sandbags':
       return (
         <Sandbags

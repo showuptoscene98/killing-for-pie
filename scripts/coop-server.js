@@ -315,6 +315,18 @@ wss.on('connection', (ws, req) => {
       return;
     }
 
+    if (msg.type === 'returnToCamp') {
+      if (id !== hostId) return;
+      started = false;
+      clients.forEach((c) => {
+        c.spectator = false;
+      });
+      if (msg.mapId) roomMapId = normalizeMapId(msg.mapId);
+      broadcast({ type: 'returnToCamp', ...lobbyPayload() });
+      syncLobby();
+      return;
+    }
+
     if (msg.type === 'setMap') {
       if (id !== hostId || started) return;
       roomMapId = normalizeMapId(msg.mapId);

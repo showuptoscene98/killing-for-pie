@@ -70,6 +70,8 @@ function snapshotHud(s, remotes = []) {
   const melee = !!weapon?.melee;
   return {
     status: s.status,
+    mapId: s.mapId,
+    transitMode: !!s.transitMode,
     points: s.points,
     round: s.round,
     roundPhase: s.roundPhase,
@@ -111,6 +113,8 @@ function snapshotHud(s, remotes = []) {
 function hudEqual(a, b) {
   if (
     a.status !== b.status ||
+    a.mapId !== b.mapId ||
+    a.transitMode !== b.transitMode ||
     a.points !== b.points ||
     a.round !== b.round ||
     a.roundPhase !== b.roundPhase ||
