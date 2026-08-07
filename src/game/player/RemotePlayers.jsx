@@ -10,6 +10,13 @@ import FemaleHair, { FemaleChest, applyGenderLook, bodyDims } from './GenderLook
 import Toon from '../style/Toon';
 import { WorldGun } from '../weapons/GunMeshes';
 import { BodyPart, BodyHead, useBodyStyle, headAnchor } from '../style/BodyParts';
+import { smoothToward } from '../net/smoothPose';
+
+/**
+ * Camera forward at yaw=0 is -Z; these body kits are authored facing +Z
+ * (mask / arms on +Z). Add π so remotes look the way they're aiming.
+ */
+const FACE_FORWARD = Math.PI;
 
 function remoteLoadout(r) {
   if (r.outfitId === 'custom' && r.outfitLoadout) {
@@ -57,20 +64,28 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
   const [gender, setGender] = useState('male');
   const [weaponId, setWeaponId] = useState('m1911');
   const gunGroup = useRef();
+  const smooth = useRef({ init: false, id: null, x: 0, y: 0, z: 0, yaw: 0 });
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const r = remotesRef.current[index];
     if (!root.current) return;
     if (!r || r.status === 'dead' || r.status === 'spectator') {
       root.current.visible = false;
+      smooth.current.init = false;
       return;
     }
     root.current.visible = true;
     const downed = r.status === 'downed';
-    root.current.position.set(r.x, downed ? 0.28 : 0, r.z);
+    const s = smoothToward(
+      smooth.current,
+      { id: r.id, x: r.x, y: r.y || 0, z: r.z, yaw: r.yaw || 0 },
+      dt,
+      { rate: 16, snapDist: 5 }
+    );
+    root.current.position.set(s.x, downed ? 0.28 : 0, s.z);
     root.current.rotation.order = 'YXZ';
     root.current.rotation.x = downed ? -Math.PI / 2 : 0;
-    root.current.rotation.y = r.yaw;
+    root.current.rotation.y = s.yaw + FACE_FORWARD;
     root.current.rotation.z = 0;
     if (gunGroup.current) gunGroup.current.visible = !hideGun && !downed;
 

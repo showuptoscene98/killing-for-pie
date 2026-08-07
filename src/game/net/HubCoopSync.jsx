@@ -8,8 +8,8 @@ import { spawnOffset } from './roomCode';
 import { HUB_MAP_ID, getMap } from '../map/activeMap';
 import { PLAYER } from '../constants';
 
-const SEND_HZ = 12;
-const SNAP_HZ = 10;
+const SEND_HZ = 18;
+const SNAP_HZ = 14;
 
 function hubSpawn() {
   return getMap(HUB_MAP_ID).PLAYER_SPAWN || { x: 0, y: 0, z: -8 };

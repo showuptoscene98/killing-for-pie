@@ -4,6 +4,8 @@ import Toon from '../style/Toon';
 import { DD } from '../style/theme';
 import { ROUND } from '../constants';
 import { BodyPart, BodyHead, BodyStub, useBodyStyle } from '../style/BodyParts';
+import { useGame } from '../GameContext';
+import { lerpAngle } from '../net/smoothPose';
 
 const DEFAULT_PALETTE = {
   body: DD.sick,
@@ -221,6 +223,7 @@ function gaitFromSeed(seed) {
 
 /** Jointed low-poly zombie — staggered limbs, limp/reach variance */
 export default function ZombieModel({ zombiesRef, index }) {
+  const { stateRef } = useGame();
   const root = useRef();
   const torso = useRef();
   const head = useRef();
@@ -244,7 +247,7 @@ export default function ZombieModel({ zombiesRef, index }) {
   const lastKey = useRef('');
   const gaitRef = useRef(null);
 
-  useFrame(() => {
+  useFrame((_, dt) => {
     const z = zombiesRef.current[index];
     if (!root.current) return;
 
@@ -256,11 +259,43 @@ export default function ZombieModel({ zombiesRef, index }) {
     root.current.visible = true;
     const sc = z.scale || 1;
     const sink = z.dead ? (1 - Math.max(0, z.deathTimer) / 0.6) * 1.2 * sc : 0;
-    const y = (z.y || 0) - sink;
-    root.current.position.set(z.x, y, z.z);
+
+    // Clients only get discrete host snaps — smooth render pose so hordes don't teleport.
+    const state = stateRef.current;
+    const smoothNet = !!state?.coop && !state?.isHost;
+    let px = z.x;
+    let py = z.y || 0;
+    let pz = z.z;
+    let pyaw = z.yaw || 0;
+    if (smoothNet) {
+      if (
+        z._rx == null ||
+        z._smoothId !== z.id ||
+        Math.hypot(z.x - z._rx, z.z - z._rz) > 5
+      ) {
+        z._rx = z.x;
+        z._ry = z.y || 0;
+        z._rz = z.z;
+        z._ryaw = z.yaw || 0;
+        z._smoothId = z.id;
+      } else {
+        const a = 1 - Math.exp(-Math.max(0, dt) * 12);
+        z._rx += (z.x - z._rx) * a;
+        z._ry += ((z.y || 0) - z._ry) * a;
+        z._rz += (z.z - z._rz) * a;
+        z._ryaw = lerpAngle(z._ryaw, z.yaw || 0, a);
+      }
+      px = z._rx;
+      py = z._ry;
+      pz = z._rz;
+      pyaw = z._ryaw;
+    }
+
+    const y = py - sink;
+    root.current.position.set(px, y, pz);
     root.current.scale.setScalar(sc);
     root.current.rotation.order = 'YXZ';
-    root.current.rotation.set(z.dead ? Math.PI / 2 : 0, z.yaw, 0);
+    root.current.rotation.set(z.dead ? Math.PI / 2 : 0, pyaw, 0);
 
     const pal = paletteFor(z);
     const seed = z.variantSeed ?? z.id ?? 0;

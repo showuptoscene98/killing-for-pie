@@ -75,9 +75,19 @@ function createWindow() {
   const url = gameUrl();
   console.log(`[desktop] Loading ${url}`);
 
-  mainWindow.loadURL(url).catch(() => {
-    mainWindow.loadFile(offlinePath());
-  });
+  // Packaged builds cache index.html aggressively — bust so Pages deploys show up.
+  const loadGame = async () => {
+    try {
+      if (app.isPackaged) {
+        await mainWindow.webContents.session.clearCache();
+      }
+      const bust = app.isPackaged ? `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}` : url;
+      await mainWindow.loadURL(bust);
+    } catch {
+      await mainWindow.loadFile(offlinePath());
+    }
+  };
+  loadGame();
 
   mainWindow.webContents.on(
     'did-fail-load',
@@ -108,8 +118,15 @@ function registerIpc() {
 
   ipcMain.handle('desktop:reloadGame', async () => {
     if (!mainWindow) return { ok: false };
-    await mainWindow.loadURL(gameUrl());
-    return { ok: true, url: gameUrl() };
+    const url = gameUrl();
+    try {
+      await mainWindow.webContents.session.clearCache();
+    } catch {
+      /* ignore */
+    }
+    const bust = `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    await mainWindow.loadURL(bust);
+    return { ok: true, url: bust };
   });
 
   ipcMain.handle('desktop:openInBrowser', async () => {

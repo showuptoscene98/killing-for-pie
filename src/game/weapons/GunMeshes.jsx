@@ -1,7 +1,6 @@
 import { forwardRef } from 'react';
 import Toon from '../style/Toon';
-import { Suspense } from 'react';
-import { GlbGun, GlbGunMesh, hasGlbGun } from './GlbGun';
+import { GlbGun, hasGlbGun } from './GlbGun';
 
 /** Shared procedural gun meshes — FP (unlit) + world/coop (toon) */
 
@@ -797,35 +796,28 @@ const FP_POSE = {
 
 const FP_POSE_DEFAULT = { position: [0.02, 0.02, -0.1], rotation: [0.06, 0.08, 0.02] };
 
-/** First-person held gun. Mag omitted — animated by viewmodel. */
+/**
+ * First-person held gun. Mag omitted — animated by viewmodel.
+ * Always procedural: hands / slide / bolt anims are authored against GunParts.
+ * Quaternius GLBs stay on WorldGun / DisplayGun (wallbuys, remotes).
+ */
 export function FpGun({ weaponId, children, slideRef, breakRef, boltRef, chargeRef }) {
   const id = weaponId || 'm1911';
   const pose = FP_POSE[id] ?? FP_POSE_DEFAULT;
-  const useGlb = hasGlbGun(id);
-
-  const procedural = (
-    <GunParts
-      weaponId={id}
-      Part={FpPart}
-      omitMag
-      anim={{
-        slide: slideRef,
-        breakOpen: breakRef,
-        bolt: boltRef,
-        charge: chargeRef,
-      }}
-    />
-  );
 
   return (
     <group position={pose.position} rotation={pose.rotation}>
-      {useGlb ? (
-        <Suspense fallback={procedural}>
-          <GlbGunMesh weaponId={id} fp />
-        </Suspense>
-      ) : (
-        procedural
-      )}
+      <GunParts
+        weaponId={id}
+        Part={FpPart}
+        omitMag
+        anim={{
+          slide: slideRef,
+          breakOpen: breakRef,
+          bolt: boltRef,
+          charge: chargeRef,
+        }}
+      />
       {children}
     </group>
   );
@@ -891,6 +883,7 @@ export function reloadStyle(weaponId) {
 
 /**
  * Third-person / coop held gun — sits in the right hand.
+ * Body kits face +Z; gun bore is authored -Z, so yaw π aims it forward.
  */
 export function WorldGun({ weaponId, scale = 1 }) {
   const id = weaponId || 'm1911';
@@ -898,7 +891,7 @@ export function WorldGun({ weaponId, scale = 1 }) {
   return (
     <group
       position={bottle ? [0.4, 0.95, 0.38] : [0.38, 0.82, 0.42]}
-      rotation={bottle ? [0.35, 0.4, -1.1] : [0.15, 0, -0.05]}
+      rotation={bottle ? [0.35, Math.PI + 0.4, -1.1] : [0.15, Math.PI, -0.05]}
       scale={scale * (bottle ? 0.95 : 0.85)}
     >
       {hasGlbGun(id) ? (
@@ -925,23 +918,22 @@ export function DisplayGun({ weaponId, scale = 1 }) {
 }
 
 export function muzzleOffset(weaponId) {
-  // GLB firearms: tips measured after grip-pivot in GlbGun. Fantasy sticks keep
-  // the longer procedural offsets.
+  // FP is procedural again — tips match GunParts bore lengths.
   switch (weaponId) {
     case 'm1911':
-      return [0, 0.01, -0.2];
+      return [0.02, 0.05, -0.32];
     case 'm14':
-      return [0, -0.02, -0.32];
+      return [0.02, 0.05, -0.7];
     case 'sniper':
-      return [0, -0.04, -0.35];
+      return [0.02, 0.05, -0.88];
     case 'mosin':
-      return [0, 0.0, -0.36];
+      return [0.02, 0.06, -0.96];
     case 'mp5':
-      return [0, -0.01, -0.27];
+      return [0.02, 0.05, -0.48];
     case 'olympia':
-      return [0, -0.02, -0.32];
+      return [0.02, 0.08, -0.58];
     case 'ak47':
-      return [0, -0.02, -0.34];
+      return [0.02, 0.06, -0.62];
     case 'raygun':
       return [0.02, 0.04, -0.54];
     case 'thundergun':
@@ -949,7 +941,6 @@ export function muzzleOffset(weaponId) {
     case 'spatula':
       return [0.04, 0.08, -0.52];
     case 'rakia':
-      // Flash unused (melee); tip of the bottle base for any FX hooks.
       return [0.02, 0.4, -0.04];
     default:
       return [0.02, 0.05, -0.48];

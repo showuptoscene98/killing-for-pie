@@ -34,8 +34,8 @@ import {
   sanitizePlayerPosition,
 } from './hostValidation';
 
-const SEND_HZ = 15;
-const SNAP_HZ = 10;
+const SEND_HZ = 20;
+const SNAP_HZ = 16;
 
 export default function CoopSync() {
   const { stateRef, zombiesRef, remotesRef } = useGame();
@@ -46,6 +46,7 @@ export default function CoopSync() {
   const pendingHits = useRef([]);
   const pendingInteracts = useRef([]);
   const initialized = useRef(false);
+  const lastOutfitKey = useRef('');
 
   useEffect(() => {
     if (initialized.current) return;
@@ -247,7 +248,11 @@ export default function CoopSync() {
       accSend.current += clamped;
       if (accSend.current >= 1 / SEND_HZ) {
         accSend.current = 0;
-        session.sendToHost({
+        // Outfit blobs are fat — only resend when the loadout actually changes.
+        const outfitKey = `${state.outfitId}|${state.outfitColor}|${state.outfitGender}|${state.outfitYarmulke}|${JSON.stringify(state.outfitLoadout || null)}`;
+        const outfitChanged = outfitKey !== lastOutfitKey.current;
+        if (outfitChanged) lastOutfitKey.current = outfitKey;
+        const msg = {
           type: 'input',
           name: localName,
           x: state.position.x,
@@ -259,12 +264,15 @@ export default function CoopSync() {
           reload: !!state._coopReloadReq,
           muzzleFlash: state.muzzleFlash > 0,
           reviveTargetId: state.reviveTargetId || null,
-          outfitId: state.outfitId || 'chef',
-          outfitColor: state.outfitColor || 'default',
-          outfitGender: state.outfitGender || 'male',
-          outfitYarmulke: !!state.outfitYarmulke,
-          outfitLoadout: state.outfitLoadout || null,
-        });
+        };
+        if (outfitChanged) {
+          msg.outfitId = state.outfitId || 'chef';
+          msg.outfitColor = state.outfitColor || 'default';
+          msg.outfitGender = state.outfitGender || 'male';
+          msg.outfitYarmulke = !!state.outfitYarmulke;
+          msg.outfitLoadout = state.outfitLoadout || null;
+        }
+        session.sendToHost(msg);
         state._coopReloadReq = false;
       }
     }
