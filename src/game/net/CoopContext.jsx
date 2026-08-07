@@ -37,21 +37,18 @@ export function CoopProvider({ children }) {
   const [mapId, setMapIdState] = useState(() => loadSavedMapId() || DEFAULT_MAP_ID);
   const [joinAsSpectator, setJoinAsSpectator] = useState(false);
 
-  // Prefer social callsign once loaded
-  useEffect(() => {
-    if (social?.callsign && social.callsign !== 'Survivor') {
-      setLocalName((prev) => (prev === social.callsign ? prev : social.callsign));
-    }
-  }, [social?.callsign]);
+  // Prefer social callsign once loaded. Done during render rather than in an
+  // effect so the name is already correct on the first paint that has it.
+  const [syncedCallsign, setSyncedCallsign] = useState(social?.callsign || '');
+  const callsign = social?.callsign || '';
+  if (callsign !== syncedCallsign) {
+    setSyncedCallsign(callsign);
+    if (callsign && callsign !== 'Survivor') setLocalName(callsign);
+  }
 
   const ensureSession = useCallback(() => {
     if (!sessionRef.current) sessionRef.current = new CoopSession();
     return sessionRef.current;
-  }, []);
-
-  useEffect(() => {
-    const fromUrl = readInviteFromUrl();
-    if (fromUrl) setPendingJoin(fromUrl);
   }, []);
 
   useEffect(() => {

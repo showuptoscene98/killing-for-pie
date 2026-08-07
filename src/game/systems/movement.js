@@ -46,7 +46,7 @@ export function stepVertical(state, dt, { jumpPressed = false, jumpHeld = false 
 
   state.position.y += state.velocityY * dt;
 
-  let feetY = state.position.y - PLAYER.height;
+  const feetY = state.position.y - PLAYER.height;
   const support = sampleSupportY(
     state.position.x,
     state.position.z,

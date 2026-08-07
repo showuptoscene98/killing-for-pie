@@ -13,9 +13,13 @@ export const DEFAULT_KEYBINDS = {
   weapon1: 'Digit1',
   weapon2: 'Digit2',
   weapon3: 'Digit3',
-};
+} as const;
 
-export const KEYBIND_ORDER = [
+export type KeybindAction = keyof typeof DEFAULT_KEYBINDS;
+export type Keybinds = Record<KeybindAction, string>;
+export type KeybindsListener = (binds: Keybinds) => void;
+
+export const KEYBIND_ORDER: readonly KeybindAction[] = [
   'forward',
   'back',
   'left',
@@ -30,7 +34,7 @@ export const KEYBIND_ORDER = [
   'weapon3',
 ];
 
-export const KEYBIND_LABELS = {
+export const KEYBIND_LABELS: Record<KeybindAction, string> = {
   forward: 'Move Forward',
   back: 'Move Back',
   left: 'Strafe Left',
@@ -46,7 +50,7 @@ export const KEYBIND_LABELS = {
 };
 
 /** Keys that cannot be bound (system / UI) */
-const BLOCKED_CODES = new Set([
+const BLOCKED_CODES = new Set<string>([
   'Escape',
   'F1',
   'F2',
@@ -66,16 +70,17 @@ const BLOCKED_CODES = new Set([
   'ContextMenu',
 ]);
 
-const listeners = new Set();
+const listeners = new Set<KeybindsListener>();
 
-function readBinds() {
+function readBinds(): Keybinds {
   try {
     const raw = localStorage.getItem(KEYBINDS_KEY);
     if (!raw) return { ...DEFAULT_KEYBINDS };
-    const parsed = JSON.parse(raw);
-    const out = { ...DEFAULT_KEYBINDS };
+    const parsed = JSON.parse(raw) as Partial<Record<KeybindAction, unknown>>;
+    const out: Keybinds = { ...DEFAULT_KEYBINDS };
     KEYBIND_ORDER.forEach((id) => {
-      if (typeof parsed[id] === 'string' && parsed[id]) out[id] = parsed[id];
+      const v = parsed[id];
+      if (typeof v === 'string' && v) out[id] = v;
     });
     return out;
   } catch {
@@ -83,9 +88,13 @@ function readBinds() {
   }
 }
 
-let keybinds = readBinds();
+/**
+ * Replaced wholesale on every change rather than mutated, so the object
+ * doubles as a stable `useSyncExternalStore` snapshot. Treat as read-only.
+ */
+let keybinds: Keybinds = readBinds();
 
-function writeBinds() {
+function writeBinds(): void {
   try {
     localStorage.setItem(KEYBINDS_KEY, JSON.stringify(keybinds));
   } catch {
@@ -93,60 +102,72 @@ function writeBinds() {
   }
 }
 
-function notify() {
+function notify(): void {
   listeners.forEach((fn) => {
     try {
-      fn({ ...keybinds });
+      fn(keybinds);
     } catch {
       /* ignore */
     }
   });
 }
 
-export function getKeybinds() {
-  return { ...keybinds };
+export function getKeybinds(): Keybinds {
+  return keybinds;
 }
 
-export function getKeybind(action) {
+export function getKeybind(action: KeybindAction): string {
   return keybinds[action] || DEFAULT_KEYBINDS[action];
 }
 
-export function subscribeKeybinds(fn) {
+export function subscribeKeybinds(fn: KeybindsListener): () => void {
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
-export function isBlockedCode(code) {
+export function isBlockedCode(code: string): boolean {
   return BLOCKED_CODES.has(code);
 }
 
 /** ShiftLeft/ShiftRight treated as the same for matching */
-export function codesMatch(bound, pressed) {
+export function codesMatch(
+  bound: string | null | undefined,
+  pressed: string | null | undefined
+): boolean {
   if (!bound || !pressed) return false;
   if (bound === pressed) return true;
-  const shift = (c) => c === 'ShiftLeft' || c === 'ShiftRight';
+  const shift = (c: string) => c === 'ShiftLeft' || c === 'ShiftRight';
   if (shift(bound) && shift(pressed)) return true;
-  const ctrl = (c) => c === 'ControlLeft' || c === 'ControlRight';
+  const ctrl = (c: string) => c === 'ControlLeft' || c === 'ControlRight';
   if (ctrl(bound) && ctrl(pressed)) return true;
-  const alt = (c) => c === 'AltLeft' || c === 'AltRight';
+  const alt = (c: string) => c === 'AltLeft' || c === 'AltRight';
   if (alt(bound) && alt(pressed)) return true;
   return false;
 }
 
 /** Find which action a code currently triggers */
-export function actionForCode(code) {
-  for (let i = 0; i < KEYBIND_ORDER.length; i++) {
-    const id = KEYBIND_ORDER[i];
+export function actionForCode(code: string): KeybindAction | null {
+  for (const id of KEYBIND_ORDER) {
     if (codesMatch(keybinds[id], code)) return id;
   }
   return null;
 }
 
+export interface SetKeybindResult {
+  ok: boolean;
+  error?: string;
+  binds: Keybinds;
+}
+
 /**
  * Bind a code to an action. If another action had that code, swap.
- * Returns { ok, error?, binds }
  */
-export function setKeybind(action, code) {
+export function setKeybind(
+  action: KeybindAction,
+  code: string
+): SetKeybindResult {
   if (!DEFAULT_KEYBINDS[action]) {
     return { ok: false, error: 'Unknown action', binds: getKeybinds() };
   }
@@ -156,7 +177,7 @@ export function setKeybind(action, code) {
 
   const prev = keybinds[action];
   const conflict = actionForCode(code);
-  const next = { ...keybinds, [action]: code };
+  const next: Keybinds = { ...keybinds, [action]: code };
   if (conflict && conflict !== action) {
     next[conflict] = prev;
   }
@@ -166,7 +187,7 @@ export function setKeybind(action, code) {
   return { ok: true, binds: getKeybinds() };
 }
 
-export function resetKeybinds() {
+export function resetKeybinds(): Keybinds {
   keybinds = { ...DEFAULT_KEYBINDS };
   writeBinds();
   notify();
@@ -174,7 +195,7 @@ export function resetKeybinds() {
 }
 
 /** Pretty label for KeyboardEvent.code */
-export function formatKeyCode(code) {
+export function formatKeyCode(code: string | null | undefined): string {
   if (!code) return '—';
   if (code === 'ShiftLeft' || code === 'ShiftRight') return 'Shift';
   if (code === 'ControlLeft' || code === 'ControlRight') return 'Ctrl';

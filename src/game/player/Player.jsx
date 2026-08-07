@@ -163,7 +163,7 @@ export default function Player({ onShoot }) {
     }
 
     const doors = getClosedDoorColliders(state);
-    const boarded = getBoardedWindowColliders(state);
+    const boarded = getBoardedWindowColliders();
     const feetY = state.position.y - PLAYER.height;
     const colliders = buildFrameColliders(doors, boarded);
 

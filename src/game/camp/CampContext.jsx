@@ -152,7 +152,7 @@ export function CampProvider({ children }) {
       }
 
       if (!isOutfitUnlocked(prev, rawId)) return prev;
-      let next = { ...prev };
+      const next = { ...prev };
       // Remember mix when leaving Custom
       if (isCustomOutfitId(prev.outfitId)) {
         next.customLoadout = packLoadout(loadoutFromCamp(prev));
@@ -249,8 +249,8 @@ export function CampProvider({ children }) {
 
   const depositRun = useCallback((runStats) => {
     const prev = loadCamp();
-    let { camp: next, earned, achievements } = bankFromRun(prev, runStats);
-    next = onRunDeposited(next, {
+    const { camp: banked, earned, achievements } = bankFromRun(prev, runStats);
+    const next = onRunDeposited(banked, {
       round: runStats.round || 0,
       kills: runStats.kills || 0,
       earned,

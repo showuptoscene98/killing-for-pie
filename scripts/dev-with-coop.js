@@ -1,13 +1,11 @@
 /**
- * Dev launcher: LAN-friendly CRA (HOST=0.0.0.0) + private-IP coop relay.
+ * Dev launcher: LAN-friendly Vite dev server + private-IP coop relay.
  */
 const { spawn } = require('child_process');
 const path = require('path');
 
 const env = {
   ...process.env,
-  HOST: '0.0.0.0',
-  BROWSER: process.env.BROWSER || 'none',
   COOP_PORT: process.env.COOP_PORT || '27541',
 };
 
@@ -19,9 +17,9 @@ const relay = spawn(process.execPath, [path.join(__dirname, 'coop-server.js')], 
   stdio: 'inherit',
 });
 
-const cra = spawn(
+const vite = spawn(
   process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['react-scripts', 'start'],
+  ['vite'],
   {
     cwd: root,
     env,
@@ -37,7 +35,7 @@ function shutdown() {
     /* ignore */
   }
   try {
-    cra.kill();
+    vite.kill();
   } catch (_) {
     /* ignore */
   }
@@ -49,7 +47,7 @@ process.on('SIGTERM', shutdown);
 relay.on('exit', (code) => {
   if (code && code !== 0) console.error('Coop relay exited', code);
 });
-cra.on('exit', (code) => {
+vite.on('exit', (code) => {
   try {
     relay.kill();
   } catch (_) {

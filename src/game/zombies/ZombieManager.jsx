@@ -365,7 +365,7 @@ export default function ZombieManager() {
     }
 
     const doors = getClosedDoorColliders(state);
-    const boards = getBoardedWindowColliders(state);
+    const boards = getBoardedWindowColliders();
     const colliders = buildFrameColliders(doors, boards);
     const zombies = zombiesRef.current;
 

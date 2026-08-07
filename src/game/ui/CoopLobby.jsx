@@ -49,12 +49,17 @@ export default function CoopLobby({ onBack, initialCode = '', initialIntent = nu
     return () => stopMenuAmbience();
   }, []);
 
-  useEffect(() => {
+  // `mode`/`joinInput` already seed from initialCode, so this only has to catch
+  // a *later* code arriving (e.g. accepting an invite with the lobby open).
+  // Adjusting during render is React's prescribed alternative to an effect here.
+  const [syncedCode, setSyncedCode] = useState(initialCode);
+  if (initialCode !== syncedCode) {
+    setSyncedCode(initialCode);
     if (initialCode && phase === 'idle') {
       setMode('join');
       setJoinInput(initialCode);
     }
-  }, [initialCode, phase]);
+  }
 
   // Auto-host when opened from camp "Host Squad"
   useEffect(() => {

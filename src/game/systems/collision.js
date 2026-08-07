@@ -14,8 +14,8 @@ function resolveCircleRect(px, pz, radius, wx, wz, ww, wd) {
   const halfD = wd / 2;
   const closestX = Math.max(wx - halfW, Math.min(px, wx + halfW));
   const closestZ = Math.max(wz - halfD, Math.min(pz, wz + halfD));
-  let dx = px - closestX;
-  let dz = pz - closestZ;
+  const dx = px - closestX;
+  const dz = pz - closestZ;
   const distSq = dx * dx + dz * dz;
   if (distSq >= radius * radius || distSq === 0) {
     if (distSq === 0) {

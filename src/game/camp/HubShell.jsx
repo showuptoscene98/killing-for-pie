@@ -766,6 +766,11 @@ function HubShellInner({
     }
   }, [refreshCamp, stateRef, phase]);
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     These react to the coop session's async phase (invite consumed, lobby
+     opened) and drive imperative work — hosting, joining, opening the squad
+     panel — so they belong in effects. Each fires once per session change. */
+
   // Invite link / Play Setup co-op → auto-host or auto-join into this camp
   useEffect(() => {
     if (autoJoinTried.current) return;
@@ -859,6 +864,8 @@ function HubShellInner({
       sawLobby.current = false;
     }
   }, [phase, isHost]);
+
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Sync selected map to coop session while hosting (keep hub world until Start)
   useEffect(() => {

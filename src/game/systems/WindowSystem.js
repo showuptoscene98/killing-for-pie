@@ -20,7 +20,7 @@ let boardedCacheKey = '';
  * players can't walk out of the map through empty windows.
  * Zombies ignore these during approach/tear/climb.
  */
-export function getBoardedWindowColliders(state) {
+export function getBoardedWindowColliders() {
   const WINDOWS = getActiveMap().WINDOWS;
   const key = `${getActiveMap().id}|egress`;
   if (boardedCache && boardedCacheKey === key) return boardedCache;

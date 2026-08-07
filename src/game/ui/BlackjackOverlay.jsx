@@ -258,7 +258,7 @@ export default function BlackjackOverlay({ open, bank, onClose, onBankChange }) 
     unlockAudio();
     play('menuHover');
     let d = [...deck];
-    let dl = [...dealer];
+    const dl = [...dealer];
     // Dealer hits soft 17; stands on hard 17+
     while (handTotal(dl) < 17 || (handTotal(dl) === 17 && isSoft(dl))) {
       const r = draw(d);

@@ -22,7 +22,9 @@ function normalizeFriendCode(raw) {
 }
 
 export function SocialProvider({ children }) {
-  const [ready, setReady] = useState(false);
+  // With no Supabase config there is nothing to wait for, so the offline case
+  // starts out already resolved rather than being set from the auth effect.
+  const [ready, setReady] = useState(!isSupabaseConfigured);
   const [available, setAvailable] = useState(isSupabaseConfigured);
   const [userId, setUserId] = useState(null);
   const [callsign, setCallsignState] = useState('Survivor');
@@ -72,7 +74,7 @@ export function SocialProvider({ children }) {
       ids.add(row.addressee_id);
     }
     ids.delete(uid);
-    let profileMap = {};
+    const profileMap = {};
     if (ids.size) {
       const { data: profiles } = await sb
         .from('profiles')
@@ -147,7 +149,7 @@ export function SocialProvider({ children }) {
         return [];
       }
       const hostIds = [...new Set((data || []).map((r) => r.host_id))];
-      let profileMap = {};
+      const profileMap = {};
       if (hostIds.length) {
         const { data: profiles } = await sb
           .from('profiles')
@@ -178,12 +180,7 @@ export function SocialProvider({ children }) {
 
   const ensureAuth = useCallback(async () => {
     const sb = getSupabase();
-    if (!sb) {
-      setAvailable(false);
-      setReady(true);
-      return null;
-    }
-    setAvailable(true);
+    if (!sb) return null;
     try {
       const { data: sessionData } = await sb.auth.getSession();
       let session = sessionData?.session;
@@ -228,6 +225,10 @@ export function SocialProvider({ children }) {
   }, [refreshProfile, refreshFriends, refreshNotifications]);
 
   useEffect(() => {
+    // Anonymous sign-in is a network bootstrap, which is what effects are for.
+    // The rule can't see that every setState inside ensureAuth happens after an
+    // await, so it assumes the worst.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     ensureAuth();
   }, [ensureAuth]);
 

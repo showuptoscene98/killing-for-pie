@@ -248,6 +248,13 @@ function AppRoutes() {
   // doesn't paint the combat map (or worse, re-enter hub) for a frame.
   const showHub = screen === 'camp' && phase !== 'playing';
 
+  /* eslint-disable react-hooks/set-state-in-effect --
+     Both of these route in response to something outside React (an invite
+     arriving, or the coop session reaching 'playing') and have to run
+     imperative side effects — stopping menu audio, swapping the active map —
+     in the same step as the navigation. The extra render happens once per
+     screen change, not per frame. */
+
   useEffect(() => {
     if (!pendingJoin) return;
     setJoinCode(pendingJoin);
@@ -270,6 +277,8 @@ function AppRoutes() {
     setSession((s) => s + 1);
     setScreen('playing');
   }, [phase, screen, clearLastRun, coopMode, coopMapId]);
+
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const start = useCallback(
     (mapOverride) => {

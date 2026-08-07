@@ -18,6 +18,23 @@ function wallColor(theme, material) {
   return DD.stone;
 }
 
+/**
+ * Cheap Lambert for the "soft" pass, cel-shaded Toon otherwise. Declared at
+ * module scope so React keeps one component type — defining it inside `Wall`
+ * gave every render a fresh type, which remounts the mesh and rebuilds its
+ * Three.js material on every frame that touches a wall.
+ */
+function WallSurface({ soft, color, emissive, emissiveIntensity = 0 }) {
+  if (soft) return <meshLambertMaterial color={color} />;
+  return (
+    <Toon
+      color={color}
+      emissive={emissive}
+      emissiveIntensity={emissiveIntensity}
+    />
+  );
+}
+
 function Wall({ x, z, w, d, theme, material, y = 0, h, soft = false }) {
   const map = getActiveMap();
   const height =
@@ -48,21 +65,21 @@ function Wall({ x, z, w, d, theme, material, y = 0, h, soft = false }) {
   const midY = y + height / 2;
   const showCoping = height > 1.5;
   const showBase = y < 0.3;
-  const Surf = soft
-    ? ({ color }) => <meshLambertMaterial color={color} />
-    : ({ color, emissive, emissiveIntensity, ...rest }) => (
-        <Toon color={color} emissive={emissive} emissiveIntensity={emissiveIntensity} {...rest} />
-      );
   return (
     <group>
       <mesh position={[x, midY, z]}>
         <boxGeometry args={[w, height, d]} />
-        <Surf color={col} emissive={col} emissiveIntensity={soft ? 0 : 0.14} />
+        <WallSurface
+          soft={soft}
+          color={col}
+          emissive={col}
+          emissiveIntensity={soft ? 0 : 0.14}
+        />
       </mesh>
       {showCoping && (
         <mesh position={[x, y + height + 0.07, z]}>
           <boxGeometry args={[w + 0.1, 0.14, d + 0.1]} />
-          <Surf color={trim} />
+          <WallSurface soft={soft} color={trim} />
         </mesh>
       )}
       {height > 2 && (
@@ -74,7 +91,7 @@ function Wall({ x, z, w, d, theme, material, y = 0, h, soft = false }) {
                 : [thick + 0.04, 0.08, long * 0.98]
             }
           />
-          <Surf color={trim} />
+          <WallSurface soft={soft} color={trim} />
         </mesh>
       )}
       {showBase && (
@@ -86,7 +103,7 @@ function Wall({ x, z, w, d, theme, material, y = 0, h, soft = false }) {
                 : [Math.max(thick + 0.16, 0.28), 0.28, long + 0.06]
             }
           />
-          <Surf color={base} />
+          <WallSurface soft={soft} color={base} />
         </mesh>
       )}
     </group>

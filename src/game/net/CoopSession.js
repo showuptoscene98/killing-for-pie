@@ -153,7 +153,7 @@ export class CoopSession {
     try {
       conn.send(payload);
       return true;
-    } catch (err) {
+    } catch (_err) {
       // Fallback: some peers only accept strings
       try {
         conn.send(typeof payload === 'string' ? payload : JSON.stringify(payload));
@@ -282,7 +282,7 @@ export class CoopSession {
       const msg =
         err?.message || 'Failed to create online room — check network / adblock';
       this._setStatus('error', msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     }
   }
 
@@ -340,7 +340,7 @@ export class CoopSession {
         err?.message ||
         'Cannot reach host — check the code, and that they still have the lobby open';
       this._setStatus('error', msg);
-      throw new Error(msg);
+      throw new Error(msg, { cause: err });
     }
   }
 

@@ -1,90 +1,60 @@
 import { useCallback, useEffect, useState } from 'react';
+import { unlockAudio, play, toggleSoundMuted } from '../audio/sound';
 import {
-  unlockAudio,
-  play,
-  isSoundMuted,
-  toggleSoundMuted,
-} from '../audio/sound';
-import {
-  getVolume,
   setVolume,
-  getLookSensMultiplier,
   setLookSensMultiplier,
-  getBodyStyle,
   setBodyStyle,
-  subscribeSettings,
 } from '../settings';
-import {
-  isFullscreen,
-  toggleGameFullscreen,
-  subscribeFullscreen,
-} from '../display';
+import { toggleGameFullscreen } from '../display';
 import {
   KEYBIND_ORDER,
   KEYBIND_LABELS,
-  getKeybinds,
   setKeybind,
   resetKeybinds,
   formatKeyCode,
   isBlockedCode,
-  subscribeKeybinds,
 } from '../keybinds';
+import {
+  useSettings,
+  useKeybinds,
+  useIsFullscreen,
+} from '../hooks/useStores';
 import { useCamp } from '../camp/CampContext';
 import { useSocial } from '../net/SocialContext';
 import { useCoop } from '../net/CoopContext';
 
+/**
+ * Gate only. The body is a separate component so closing the panel unmounts it,
+ * which resets the transient rebind/confirm state for free instead of needing an
+ * effect to clear it.
+ */
 export default function SettingsPanel({ open, onClose }) {
+  if (!open) return null;
+  return <SettingsPanelBody onClose={onClose} />;
+}
+
+function SettingsPanelBody({ onClose }) {
   const { camp, wipeProgress, refreshCamp } = useCamp();
   const social = useSocial();
   const { setLocalName } = useCoop();
-  const [volume, setVol] = useState(() => getVolume());
-  const [sens, setSens] = useState(() => getLookSensMultiplier());
-  const [muted, setMuted] = useState(() => isSoundMuted());
-  const [bodyStyle, setBodyStyleUi] = useState(() => getBodyStyle());
-  const [binds, setBinds] = useState(() => getKeybinds());
+
+  const { volume, lookSens: sens, muted, bodyStyle } = useSettings();
+  const binds = useKeybinds();
+  const fs = useIsFullscreen();
+
   const [listening, setListening] = useState(null); // action id or null
   const [bindError, setBindError] = useState('');
-  const [fs, setFs] = useState(() => isFullscreen());
   const [confirmWipe, setConfirmWipe] = useState(false);
-  const [callsignDraft, setCallsignDraft] = useState('');
+  const [callsignDraft, setCallsignDraft] = useState(
+    () => social?.callsign || ''
+  );
 
   useEffect(() => {
-    if (open && social?.callsign) setCallsignDraft(social.callsign);
-  }, [open, social?.callsign]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    return subscribeSettings((s) => {
-      setVol(s.volume);
-      setSens(s.lookSens);
-      setMuted(s.muted);
-      if (s.bodyStyle) setBodyStyleUi(s.bodyStyle);
-    });
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    return subscribeFullscreen(setFs);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    return subscribeKeybinds((b) => setBinds(b));
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      setListening(null);
-      setBindError('');
-      setConfirmWipe(false);
-    } else {
-      refreshCamp?.();
-    }
-  }, [open, refreshCamp]);
+    refreshCamp?.();
+  }, [refreshCamp]);
 
   // Esc: cancel rebind first, else close panel
   useEffect(() => {
-    if (!open) return undefined;
     const onKey = (e) => {
       if (e.code !== 'Escape') return;
       e.preventDefault();
@@ -98,11 +68,11 @@ export default function SettingsPanel({ open, onClose }) {
     };
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [open, onClose, listening]);
+  }, [onClose, listening]);
 
   // Capture next key while rebinding
   useEffect(() => {
-    if (!open || !listening) return undefined;
+    if (!listening) return undefined;
 
     const onKey = (e) => {
       e.preventDefault();
@@ -121,7 +91,6 @@ export default function SettingsPanel({ open, onClose }) {
         setBindError(result.error || 'Could not bind');
         return;
       }
-      setBinds(result.binds);
       setListening(null);
       setBindError('');
       unlockAudio();
@@ -130,7 +99,7 @@ export default function SettingsPanel({ open, onClose }) {
 
     window.addEventListener('keydown', onKey, true);
     return () => window.removeEventListener('keydown', onKey, true);
-  }, [open, listening]);
+  }, [listening]);
 
   const onVolume = useCallback((e) => {
     unlockAudio();
@@ -144,9 +113,7 @@ export default function SettingsPanel({ open, onClose }) {
   const onMute = useCallback((e) => {
     e.stopPropagation();
     unlockAudio();
-    const next = toggleSoundMuted();
-    setMuted(next);
-    if (!next) play('menuClick');
+    if (!toggleSoundMuted()) play('menuClick');
   }, []);
 
   const startListen = useCallback((action) => {
@@ -159,7 +126,7 @@ export default function SettingsPanel({ open, onClose }) {
   const onResetBinds = useCallback(() => {
     unlockAudio();
     play('menuClick');
-    setBinds(resetKeybinds());
+    resetKeybinds();
     setListening(null);
     setBindError('');
   }, []);
@@ -174,8 +141,6 @@ export default function SettingsPanel({ open, onClose }) {
     wipeProgress();
     setConfirmWipe(false);
   }, [confirmWipe, wipeProgress]);
-
-  if (!open) return null;
 
   return (
     <div className="settings-overlay" onClick={onClose} role="presentation">
@@ -208,7 +173,6 @@ export default function SettingsPanel({ open, onClose }) {
                   unlockAudio();
                   play('menuClick');
                   setBodyStyle(opt.id);
-                  setBodyStyleUi(opt.id);
                 }}
               >
                 {opt.label}
@@ -327,9 +291,7 @@ export default function SettingsPanel({ open, onClose }) {
             onClick={() => {
               unlockAudio();
               play('menuClick');
-              toggleGameFullscreen(document.documentElement)
-                .then((on) => setFs(!!on))
-                .catch(() => {});
+              toggleGameFullscreen(document.documentElement).catch(() => {});
             }}
           >
             {fs ? 'Exit Fullscreen' : 'Fullscreen'}

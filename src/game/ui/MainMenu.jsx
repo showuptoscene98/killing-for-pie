@@ -12,11 +12,8 @@ import CharacterCustomize from './CharacterCustomize';
 import MenuMuteButton from './MenuMuteButton';
 import SettingsPanel, { SettingsButton } from './SettingsPanel';
 import NotificationBell from './NotificationBell';
-import {
-  getKeybinds,
-  formatKeyCode,
-  subscribeKeybinds,
-} from '../keybinds';
+import { formatKeyCode } from '../keybinds';
+import { useKeybinds } from '../hooks/useStores';
 import { useCamp } from '../camp/CampContext';
 
 function controlsLines(binds) {
@@ -49,19 +46,16 @@ export default function MainMenu({ onPlay, onCamp, onPlaySetup }) {
   const [soundOn, setSoundOn] = useState(() => isAudioUnlocked());
   const [customize, setCustomize] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [binds, setBinds] = useState(() => getKeybinds());
-
-  useEffect(() => subscribeKeybinds(setBinds), []);
+  const binds = useKeybinds();
 
   useEffect(() => {
     refreshCamp?.();
   }, [refreshCamp]);
 
+  // `soundOn` already seeds from isAudioUnlocked(), so this only needs to
+  // resume the ambience track.
   useEffect(() => {
-    if (isAudioUnlocked()) {
-      startMenuAmbience();
-      setSoundOn(true);
-    }
+    if (isAudioUnlocked()) startMenuAmbience();
   }, []);
 
   const enableSound = useCallback(() => {

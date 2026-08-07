@@ -1,5 +1,5 @@
 /**
- * Dev launcher: CRA (HOST=0.0.0.0) + Electron shell.
+ * Dev launcher: Vite dev server + Electron shell.
  * Coop relay is started by Electron main (same as packaged builds).
  */
 const { spawn } = require('child_process');
@@ -8,13 +8,13 @@ const http = require('http');
 
 const root = path.join(__dirname, '..');
 const PORT = Number(process.env.PORT || 3000);
-const START_URL = process.env.ELECTRON_START_URL || `http://127.0.0.1:${PORT}`;
+// Must match `base` in vite.config.ts — Vite 404s the bare root.
+const BASE = '/killing-for-pie/';
+const START_URL =
+  process.env.ELECTRON_START_URL || `http://127.0.0.1:${PORT}${BASE}`;
 
 const env = {
   ...process.env,
-  HOST: '0.0.0.0',
-  BROWSER: 'none',
-  PORT: String(PORT),
   ELECTRON_START_URL: START_URL,
   COOP_PORT: process.env.COOP_PORT || '27541',
 };
@@ -68,18 +68,18 @@ function waitForUrl(url, tries = 120) {
   });
 }
 
-const cra = spawnChild(
+const vite = spawnChild(
   process.platform === 'win32' ? 'npx.cmd' : 'npx',
-  ['react-scripts', 'start']
+  ['vite']
 );
 
-cra.on('exit', (code) => {
+vite.on('exit', (code) => {
   if (code && code !== 0) shutdown(code);
 });
 
 waitForUrl(START_URL)
   .then(() => {
-    console.log(`[electron-dev] CRA ready — launching Electron (${START_URL})`);
+    console.log(`[electron-dev] Vite ready — launching Electron (${START_URL})`);
     const electronBin =
       process.platform === 'win32'
         ? path.join(root, 'node_modules', '.bin', 'electron.cmd')
