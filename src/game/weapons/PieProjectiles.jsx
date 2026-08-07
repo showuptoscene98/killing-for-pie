@@ -5,6 +5,8 @@ import { useGameApi } from '../GameContext';
 import { awardHit } from '../systems/PointsSystem';
 import { play } from '../audio/sound';
 import { killZombie, isInstaKillActive } from '../systems/PowerupSystem';
+import { sampleFloorY } from '../systems/collision';
+import { getActiveMap } from '../map/activeMap';
 
 let nextPieId = 1;
 
@@ -42,8 +44,10 @@ function explodePie(pie, zombies, state) {
   for (let i = 0; i < zombies.length; i++) {
     const z = zombies[i];
     if (z.dead) continue;
+    const sc = z.scale || 1;
+    const bodyY = (z.y || 0) + 0.9 * sc;
     const dist = Math.hypot(z.x - pie.x, z.z - pie.z);
-    const yDist = Math.abs(0.9 - pie.y);
+    const yDist = Math.abs(bodyY - pie.y);
     if (dist > pie.splash || yDist > 2.5) continue;
     const falloff = 1 - dist / pie.splash;
     const dmg = insta
@@ -120,6 +124,8 @@ export default function PieProjectiles() {
     const zombies = zombiesRef.current;
     const clamped = Math.min(dt, 0.05);
     const isClientView = !!state.coop && !state.isHost;
+    const map = getActiveMap();
+    const ceiling = (map.WALL_HEIGHT || 3.5) + 1.2;
 
     if (!isClientView) {
       for (let i = pies.length - 1; i >= 0; i--) {
@@ -135,11 +141,13 @@ export default function PieProjectiles() {
         p.z += p.vz * clamped;
 
         let hit = false;
-        if (p.y <= 0.15) {
-          p.y = 0.15;
+        // Land on whatever deck/stair/ground is under the throw (not just y=0)
+        const floorY = sampleFloorY(p.x, p.z, Math.max(0, p.y - 0.5));
+        if (p.y <= floorY + 0.15) {
+          p.y = floorY + 0.15;
           hit = true;
         }
-        if (p.y > 3.1) hit = true;
+        if (p.y > ceiling) hit = true;
         if (p.life <= 0) hit = true;
 
         if (!hit) {
@@ -148,8 +156,9 @@ export default function PieProjectiles() {
             const z = zombies[zi];
             if (z.dead) continue;
             const sc = z.scale || 1;
+            const bodyY = (z.y || 0) + 1.0 * sc;
             const dist = Math.hypot(z.x - p.x, z.z - p.z);
-            if (dist < hitR * sc && Math.abs(p.y - 1.0 * sc) < 1.1 * sc) {
+            if (dist < hitR * sc && Math.abs(p.y - bodyY) < 1.1 * sc) {
               hit = true;
               break;
             }
