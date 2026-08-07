@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm install
       - run: npm run build
       # SPA fallback — GitHub Pages has no Netlify-style redirects
       - run: cp build/index.html build/404.html
