@@ -118,6 +118,10 @@ export function snapshotZombieNet(z) {
     variant: z.variant || null,
     variantSeed: z.variantSeed ?? 0,
     attackT: z.attackT == null ? null : +z.attackT.toFixed(2),
+    boss: !!z.boss,
+    bossTheme: z.bossTheme || null,
+    scale: z.scale || 1,
+    radius: z.radius || 0.35,
   };
 }
 

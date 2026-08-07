@@ -109,8 +109,9 @@ export default function PieProjectiles() {
           for (let zi = 0; zi < zombies.length; zi++) {
             const z = zombies[zi];
             if (z.dead) continue;
+            const sc = z.scale || 1;
             const dist = Math.hypot(z.x - p.x, z.z - p.z);
-            if (dist < 0.55 && Math.abs(p.y - 1.0) < 1.1) {
+            if (dist < 0.55 * sc && Math.abs(p.y - 1.0 * sc) < 1.1 * sc) {
               hit = true;
               break;
             }

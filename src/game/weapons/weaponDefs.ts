@@ -241,7 +241,8 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     name: 'Rakia',
     damage: 55,
     headMultiplier: 2.0,
-    fireRate: 0.38,
+    // Swing cadence — long enough for the viewmodel arc to read.
+    fireRate: 0.55,
     magSize: 1,
     reserve: 0,
     reloadTime: 0.01,
@@ -250,8 +251,8 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     automatic: true,
     mystery: true,
     melee: true,
-    meleeRange: 2.35,
-    meleeKnockback: 3.8,
+    meleeRange: 2.5,
+    meleeKnockback: 4.2,
   },
 };
 

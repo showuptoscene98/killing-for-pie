@@ -6,6 +6,7 @@ import {
   collideEntity,
   buildFrameColliders,
   sampleFloorY,
+  separateFromBossZombies,
 } from '../systems/collision';
 import { getClosedDoorColliders } from '../systems/DoorSystem';
 import {
@@ -15,6 +16,7 @@ import {
   tearBoard,
 } from '../systems/WindowSystem';
 import {
+  bossHpForRound,
   zombieHpForRound,
   zombieSpeedForRound,
 } from '../systems/gameState';
@@ -36,29 +38,41 @@ const MAX_ZOMBIES = ROUND.maxActive + CORPSE_HEADROOM;
 const ZOMBIE_SEP = 0.72;
 let nextId = 1;
 
+function sepRadiusFor(z) {
+  if (z?.boss) return (z.radius || ROUND.bossRadius) * 2;
+  return ZOMBIE_SEP;
+}
+
 /** Push `z` away from overlapping live chase zombies so they don't clip. */
 function separateFromZombies(z, zombies, colliders) {
   for (let j = 0; j < zombies.length; j++) {
     const o = zombies[j];
     if (o === z || o.dead || o.phase !== 'chase') continue;
     if (Math.abs((o.y || 0) - (z.y || 0)) > 1.2) continue;
+    const sep = Math.max(sepRadiusFor(z), sepRadiusFor(o));
     const odx = z.x - o.x;
     const odz = z.z - o.z;
     const d = Math.hypot(odx, odz);
     if (d < 1e-4) {
       // Exact overlap — nudge on a stable angle from id
       const a = (z.id || 0) * 2.399;
-      z.x += Math.cos(a) * ZOMBIE_SEP * 0.5;
-      z.z += Math.sin(a) * ZOMBIE_SEP * 0.5;
+      z.x += Math.cos(a) * sep * 0.5;
+      z.z += Math.sin(a) * sep * 0.5;
       continue;
     }
-    if (d < ZOMBIE_SEP) {
-      const push = (ZOMBIE_SEP - d) * 0.5;
+    if (d < sep) {
+      const push = (sep - d) * 0.5;
       z.x += (odx / d) * push;
       z.z += (odz / d) * push;
     }
   }
-  const fixed = collideEntity(z.x, z.z, 0.35, colliders, z.y || 0);
+  const fixed = collideEntity(
+    z.x,
+    z.z,
+    z.radius || 0.35,
+    colliders,
+    z.y || 0
+  );
   z.x = fixed.x;
   z.z = fixed.z;
   z.y = fixed.y;
@@ -72,17 +86,40 @@ function pickZombieVariant(map) {
   return map.zombieVariant || null;
 }
 
-function createZombie(x, z, round, windowId = null) {
+/** Boss look follows map theme — farm/city reuse special variants. */
+function bossStyleForMap(map) {
+  const theme = map?.theme || 'stone';
+  if (theme === 'farm') {
+    return { variant: 'cow', bossTheme: 'farm' };
+  }
+  if (theme === 'city') {
+    return { variant: 'gypsy', bossTheme: 'city' };
+  }
+  if (theme === 'camp') {
+    return { variant: null, bossTheme: 'camp' };
+  }
+  if (theme === 'suburb') {
+    return { variant: null, bossTheme: 'suburb' };
+  }
+  return { variant: null, bossTheme: 'stone' };
+}
+
+function createZombie(x, z, round, windowId = null, { boss = false } = {}) {
   const map = getActiveMap();
-  const variant = pickZombieVariant(map);
+  const style = boss ? bossStyleForMap(map) : null;
+  const variant = boss ? style.variant : pickZombieVariant(map);
+  const hp = boss ? bossHpForRound(round) : zombieHpForRound(round);
+  const speed = boss
+    ? zombieSpeedForRound(round) * ROUND.bossSpeedMult
+    : zombieSpeedForRound(round);
   return {
     id: nextId++,
     x,
     z,
     y: 0,
-    hp: zombieHpForRound(round),
-    maxHp: zombieHpForRound(round),
-    speed: zombieSpeedForRound(round),
+    hp,
+    maxHp: hp,
+    speed,
     dead: false,
     deathTimer: 0,
     attackCooldown: 0,
@@ -101,10 +138,15 @@ function createZombie(x, z, round, windowId = null) {
     variant,
     variantSeed: Math.floor(Math.random() * 64),
     moanTimer: 0.4 + Math.random() * 1.8,
+    boss,
+    bossTheme: boss ? style.bossTheme : null,
+    scale: boss ? ROUND.bossScale : 1,
+    radius: boss ? ROUND.bossRadius : 0.35,
+    attackDamage: boss ? ROUND.bossAttackDamage : ROUND.attackDamage,
   };
 }
 
-function applySwingDamage(state, target) {
+function applySwingDamage(state, target, damage = ROUND.attackDamage) {
   if (target && !target.isLocal) {
     const p = target.player;
     if (
@@ -116,7 +158,7 @@ function applySwingDamage(state, target) {
       return;
     }
     if (p.damageCooldown > 0) return;
-    p.hp -= ROUND.attackDamage;
+    p.hp -= damage;
     p.damageCooldown = PLAYER.damageCooldown;
     onDamaged(p);
     if (p.hp <= 0) {
@@ -137,7 +179,7 @@ function applySwingDamage(state, target) {
     return;
   }
   if (state.damageCooldown > 0) return;
-  state.hp -= ROUND.attackDamage;
+  state.hp -= damage;
   state.damageCooldown = PLAYER.damageCooldown;
   onDamaged(state);
   if (state.hp <= 0) {
@@ -154,8 +196,12 @@ function applySwingDamage(state, target) {
   }
 }
 
-/** Wind-up → strike (damage) → recover. No contact damage. */
+/** Wind-up → strike (damage) → recover. Bosses also have solid body collision. */
 function tickZombieMelee(z, state, target, dist, clampedDt, sameFloor) {
+  const engage = z.boss ? ROUND.bossAttackEngage : ROUND.attackEngage;
+  const hitRange = z.boss ? ROUND.bossAttackHitRange : ROUND.attackHitRange;
+  const damage = z.attackDamage ?? ROUND.attackDamage;
+
   if (z.attackT != null) {
     z.attackT += clampedDt;
     z.moving = false;
@@ -164,8 +210,8 @@ function tickZombieMelee(z, state, target, dist, clampedDt, sameFloor) {
     if (!z.attackHit && z.attackT >= ROUND.attackWindup) {
       z.attackHit = true;
       play('zombieAttack');
-      if (sameFloor && dist <= ROUND.attackHitRange) {
-        applySwingDamage(state, target);
+      if (sameFloor && dist <= hitRange) {
+        applySwingDamage(state, target, damage);
       }
     }
 
@@ -179,12 +225,63 @@ function tickZombieMelee(z, state, target, dist, clampedDt, sameFloor) {
 
   if (!sameFloor) return false;
   if (z.attackCooldown > 0) return false;
-  if (dist > ROUND.attackEngage) return false;
+  if (dist > engage) return false;
 
   z.attackT = 0;
   z.attackHit = false;
   z.moving = false;
   return true;
+}
+
+/** Keep bosses from overlapping the local player / coop targets. */
+function resolveBossPlayerBodies(state, zombies, colliders) {
+  const feetY =
+    state.floorY ?? Math.max(0, (state.position?.y || 0) - PLAYER.height);
+  if (state.status === 'playing' || state.status === 'downed') {
+    const next = separateFromBossZombies(
+      state.position.x,
+      state.position.z,
+      zombies,
+      { playerFeetY: feetY, pushBoss: true }
+    );
+    state.position.x = next.x;
+    state.position.z = next.z;
+  }
+
+  const targets = state.coopTargets;
+  if (targets?.length) {
+    for (let i = 0; i < targets.length; i++) {
+      const t = targets[i];
+      if (t.isLocal) continue;
+      const p = t.player;
+      if (!p?.position) continue;
+      const tf =
+        t.floorY ?? Math.max(0, (p.position.y || 0) - PLAYER.height);
+      const next = separateFromBossZombies(t.x, t.z, zombies, {
+        playerFeetY: tf,
+        pushBoss: true,
+      });
+      t.x = next.x;
+      t.z = next.z;
+      p.position.x = next.x;
+      p.position.z = next.z;
+    }
+  }
+
+  for (let i = 0; i < zombies.length; i++) {
+    const z = zombies[i];
+    if (!z.boss || z.dead || z.phase !== 'chase') continue;
+    const fixed = collideEntity(
+      z.x,
+      z.z,
+      z.radius || ROUND.bossRadius,
+      colliders,
+      z.y || 0
+    );
+    z.x = fixed.x;
+    z.z = fixed.z;
+    z.y = fixed.y;
+  }
 }
 
 function tickZombieAudio(state, z, clampedDt) {
@@ -289,6 +386,9 @@ export default function ZombieManager() {
     const state = stateRef.current;
     if (zombiesRef.current.length >= MAX_ZOMBIES) return false;
 
+    const asBoss = !!state.bossPending;
+    if (asBoss) state.bossPending = false;
+
     const openWins = openWindowsForState(state);
     if (openWins.length) {
       const px = state.position.x;
@@ -305,10 +405,11 @@ export default function ZombieManager() {
           pick.outside.x + j(),
           pick.outside.z + j(),
           state.round,
-          pick.id
+          pick.id,
+          { boss: asBoss }
         )
       );
-      play('zombieMoan', { volume: 0.85 });
+      play('zombieMoan', { volume: asBoss ? 1 : 0.85 });
       return true;
     }
 
@@ -323,10 +424,12 @@ export default function ZombieManager() {
       createZombie(
         pick.position[0] + jitter(),
         pick.position[2] + jitter(),
-        state.round
+        state.round,
+        null,
+        { boss: asBoss }
       )
     );
-    play('zombieSpawn');
+    play(asBoss ? 'zombieMoan' : 'zombieSpawn');
     return true;
   };
 
@@ -503,12 +606,14 @@ export default function ZombieManager() {
       z.y = sampleFloorY(z.x, z.z, z.y || 0);
       const sameFloor = Math.abs((z.y || 0) - playerFeet) <= 1.2;
       const swinging = z.attackT != null;
+      const bodyR = z.radius || 0.35;
+      const engage = z.boss ? ROUND.bossAttackEngage : ROUND.attackEngage;
 
-      if (!swinging && dist > ROUND.attackEngage) {
+      if (!swinging && dist > engage) {
         const nx = z.x + (dx / dist) * z.speed * clampedDt;
         const nz = z.z + (dz / dist) * z.speed * clampedDt;
         const feetY = z.y || 0;
-        const resolved = collideEntity(nx, nz, 0.35, colliders, feetY);
+        const resolved = collideEntity(nx, nz, bodyR, colliders, feetY);
         z.x = resolved.x;
         z.z = resolved.z;
         z.y = resolved.y;
@@ -520,7 +625,7 @@ export default function ZombieManager() {
         if (z.stepAcc >= 0.42 && spat && spat.dist < 18) {
           z.stepAcc = 0;
           play('zombieStep', {
-            volume: Math.min(1, spat.volume * 1.05),
+            volume: Math.min(1, spat.volume * (z.boss ? 1.2 : 1.05)),
             pan: spat.pan,
           });
         }
@@ -532,6 +637,8 @@ export default function ZombieManager() {
         tickZombieMelee(z, state, target, dist, clampedDt, sameFloor);
       }
     }
+
+    resolveBossPlayerBodies(state, zombies, colliders);
 
     // Reconcile against the live array instead of trusting the incremental
     // counter. Any zombie removed without going through onZombieKilled used to

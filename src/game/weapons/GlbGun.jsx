@@ -20,15 +20,56 @@ const GLB_URL = Object.fromEntries(
   GLB_GUN_IDS.map((id) => [id, `${BASE}models/guns/${id}.glb`])
 );
 
-/** Per-gun orientation relative to our FP/world grips (scale is auto-fit). */
+/**
+ * Quaternius packs author the bore along +X. Our FP/world rigs expect muzzle
+ * at local -Z and the firing hand at `grip`. `gripAnchor` is the AABB lerp
+ * (0..1 from min→max) that marks the hold point on the mesh before we snap it
+ * to `grip`.
+ */
 const GLB_FIT = {
-  m1911: { rotation: [0, Math.PI, 0], position: [0, -0.02, 0.02], targetLen: 0.28 },
-  m14: { rotation: [0, Math.PI, 0], position: [0, -0.01, -0.04], targetLen: 0.55 },
-  mp5: { rotation: [0, Math.PI, 0], position: [0, -0.01, -0.02], targetLen: 0.42 },
-  olympia: { rotation: [0, Math.PI, 0], position: [0, 0, -0.02], targetLen: 0.52 },
-  sniper: { rotation: [0, Math.PI, 0], position: [0, -0.01, -0.06], targetLen: 0.62 },
-  mosin: { rotation: [0, Math.PI, 0], position: [0, -0.01, -0.08], targetLen: 0.64 },
-  ak47: { rotation: [0, Math.PI, 0], position: [0, -0.01, -0.03], targetLen: 0.5 },
+  m1911: {
+    rotation: [0, Math.PI / 2, 0],
+    targetLen: 0.28,
+    grip: [0, -0.08, 0.04],
+    gripAnchor: [0.5, 0.22, 0.82],
+  },
+  m14: {
+    rotation: [0, Math.PI / 2, 0],
+    targetLen: 0.55,
+    grip: [0, -0.08, 0.12],
+    gripAnchor: [0.5, 0.3, 0.78],
+  },
+  mp5: {
+    rotation: [0, Math.PI / 2, 0],
+    targetLen: 0.42,
+    grip: [0, -0.08, 0.04],
+    gripAnchor: [0.5, 0.3, 0.72],
+  },
+  olympia: {
+    rotation: [0, Math.PI / 2, 0],
+    targetLen: 0.52,
+    grip: [0, -0.04, 0.1],
+    gripAnchor: [0.5, 0.42, 0.8],
+  },
+  sniper: {
+    rotation: [0, Math.PI / 2, 0],
+    targetLen: 0.62,
+    grip: [0, -0.08, 0.14],
+    gripAnchor: [0.5, 0.3, 0.78],
+  },
+  mosin: {
+    rotation: [0, Math.PI / 2, 0],
+    targetLen: 0.64,
+    // Wrist hold slightly forward of the sniper so the longer barrel still leads.
+    grip: [0, -0.05, 0.14],
+    gripAnchor: [0.5, 0.3, 0.78],
+  },
+  ak47: {
+    rotation: [0, Math.PI / 2, 0],
+    targetLen: 0.5,
+    grip: [0, -0.08, 0.06],
+    gripAnchor: [0.5, 0.3, 0.78],
+  },
 };
 
 const WOOD_RE = /wood|stock|grip|handle|butt|furniture/i;
@@ -74,7 +115,7 @@ export function hasGlbGun(weaponId) {
 /**
  * Themed Quaternius gun mesh. Clones + recolors to the muddy cel palette so
  * the pack reads as Killing for Pie furniture, not clean PBR plastic.
- * Auto-fits bounding-box length so oversized OBJs don't fill the FP camera.
+ * Auto-fits bounding-box length and pivots on the grip for the FP hands.
  */
 export function GlbGunMesh({ weaponId, scale = 1, fp = false }) {
   const url = GLB_URL[weaponId];
@@ -94,31 +135,38 @@ export function GlbGunMesh({ weaponId, scale = 1, fp = false }) {
         : mat;
     });
 
-    // Quaternius OBJs land at ~1–2 units; FP view sits at ~0.3–0.6. Normalize.
-    const box = new THREE.Box3().setFromObject(cloned);
+    // Rotate into our bore frame first (+X → -Z), then scale + grip-pivot.
+    const wrap = new THREE.Group();
+    wrap.add(cloned);
+    wrap.rotation.set(fit.rotation[0], fit.rotation[1], fit.rotation[2]);
+    wrap.updateMatrixWorld(true);
+
+    const box = new THREE.Box3().setFromObject(wrap);
     const size = new THREE.Vector3();
     box.getSize(size);
     const longest = Math.max(size.x, size.y, size.z, 0.001);
     const target = (fp ? fit.targetLen : fit.targetLen * 1.35) * scale;
-    const fitScale = target / longest;
-    cloned.scale.setScalar(fitScale);
+    wrap.scale.setScalar(target / longest);
 
-    // Recenter on grip so auto-scale doesn't drift the barrel into the camera.
-    const box2 = new THREE.Box3().setFromObject(cloned);
-    const center = new THREE.Vector3();
-    box2.getCenter(center);
-    cloned.position.sub(center);
-    // Bias slightly forward so the breech sits near the hands, not the muzzle.
-    cloned.position.z += size.z * fitScale * 0.15;
+    wrap.updateMatrixWorld(true);
+    const box2 = new THREE.Box3().setFromObject(wrap);
+    const [ax, ay, az] = fit.gripAnchor;
+    const gripPoint = new THREE.Vector3(
+      THREE.MathUtils.lerp(box2.min.x, box2.max.x, ax),
+      THREE.MathUtils.lerp(box2.min.y, box2.max.y, ay),
+      THREE.MathUtils.lerp(box2.min.z, box2.max.z, az)
+    );
+    const gripTarget = new THREE.Vector3(
+      fit.grip[0],
+      fit.grip[1],
+      fit.grip[2]
+    );
+    wrap.position.copy(gripTarget).sub(gripPoint);
 
-    return cloned;
-  }, [scene, fp, fit.targetLen, scale]);
+    return wrap;
+  }, [scene, fp, fit, scale]);
 
-  return (
-    <group rotation={fit.rotation} position={fit.position}>
-      <primitive object={root} />
-    </group>
-  );
+  return <primitive object={root} />;
 }
 
 /** Suspense wrapper — never leave a hung GLTF request blocking the viewmodel. */

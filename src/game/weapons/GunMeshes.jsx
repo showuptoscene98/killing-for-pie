@@ -706,48 +706,59 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
       );
 
     case 'rakia':
-      // Glass bottle of rakia — fist-fight sidearm
+      // Bottle club — origin on the neck so the fist grips there; base is the beater.
       return (
         <group>
-          {/* body */}
+          {/* cork (wrist side of the fist) */}
           <Part
-            position={[0, 0.02, -0.02]}
-            args={[0.07, 0.07, 0.22, 10]}
+            position={[0, -0.02, 0.03]}
+            args={[0.03, 0.03, 0.045, 8]}
             geo="cyl"
-            color="#6a3020"
+            axis="y"
+            color="#c4a060"
           />
+          {/* neck — through the fingers */}
           <Part
-            position={[0, 0.02, -0.02]}
-            args={[0.055, 0.055, 0.18, 10]}
+            position={[0, 0.04, 0]}
+            args={[0.026, 0.026, 0.11, 8]}
             geo="cyl"
-            color="#c4782a"
+            axis="y"
+            color="#4a2010"
           />
           {/* shoulder */}
           <Part
-            position={[0, 0.02, -0.14]}
-            args={[0.05, 0.05, 0.06, 10]}
+            position={[0, 0.12, -0.01]}
+            args={[0.048, 0.048, 0.055, 10]}
             geo="cyl"
+            axis="y"
             color="#5a2818"
           />
-          {/* neck */}
+          {/* body / liquid */}
           <Part
-            position={[0, 0.02, -0.22]}
-            args={[0.028, 0.028, 0.12, 8]}
+            position={[0, 0.26, -0.02]}
+            args={[0.072, 0.072, 0.22, 10]}
             geo="cyl"
-            color="#4a2010"
+            axis="y"
+            color="#6a3020"
           />
-          {/* cork */}
           <Part
-            position={[0, 0.02, -0.29]}
-            args={[0.032, 0.032, 0.04, 8]}
+            position={[0, 0.26, -0.02]}
+            args={[0.056, 0.056, 0.18, 10]}
             geo="cyl"
-            color="#c4a060"
+            axis="y"
+            color="#c4782a"
+          />
+          {/* base — strike face */}
+          <Part
+            position={[0, 0.38, -0.02]}
+            args={[0.076, 0.076, 0.04, 10]}
+            geo="cyl"
+            axis="y"
+            color="#3a1810"
           />
           {/* label */}
-          <Part position={[0, 0.055, 0.02]} args={[0.02, 0.08, 0.1]} color="#e8dcc0" />
-          <Part position={[0, 0.058, 0.02]} args={[0.01, 0.05, 0.04]} color="#8a2020" />
-          {/* fist knuckle bump (held like a bottle club) */}
-          <Part position={[0.02, -0.06, 0.1]} args={[0.08, 0.07, 0.1]} color="#8a6a50" />
+          <Part position={[0.04, 0.24, -0.02]} args={[0.02, 0.1, 0.08]} color="#e8dcc0" />
+          <Part position={[0.045, 0.24, -0.02]} args={[0.01, 0.05, 0.04]} color="#8a2020" />
         </group>
       );
 
@@ -770,16 +781,18 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
 /** How each gun sits in the hands, relative to the viewmodel rig. */
 const FP_POSE = {
   spatula: { position: [0.04, 0, -0.02], rotation: [0.12, 0.15, -0.4] },
-  rakia: { position: [0.06, -0.02, -0.04], rotation: [0.35, 0.25, -0.55] },
-  olympia: { position: [0.02, 0.01, -0.06], rotation: [0.04, 0.06, 0.02] },
-  mp5: { position: [0.03, 0.0, -0.06], rotation: [0.08, 0.1, 0.04] },
-  sniper: { position: [0.015, 0.03, -0.14], rotation: [0.03, 0.05, 0.01] },
-  // Longest gun in the game — pushed further forward so the butt clears frame.
-  mosin: { position: [0.015, 0.025, -0.18], rotation: [0.025, 0.045, 0.01] },
-  ak47: { position: [0.025, 0.015, -0.09], rotation: [0.08, 0.1, 0.05] },
+  // Cocked on the right — neck in the fist, base up ready to chop across.
+  rakia: { position: [0.05, -0.05, -0.02], rotation: [0.15, 0.55, -1.05] },
+  olympia: { position: [0.02, 0.02, -0.04], rotation: [0.05, 0.04, 0.02] },
+  mp5: { position: [0.02, 0.01, -0.04], rotation: [0.06, 0.06, 0.03] },
+  sniper: { position: [0.015, 0.02, -0.1], rotation: [0.03, 0.04, 0.01] },
+  // Longest gun — nudged forward so the butt clears the camera near-plane.
+  mosin: { position: [0.015, 0.02, -0.12], rotation: [0.025, 0.035, 0.01] },
+  ak47: { position: [0.02, 0.015, -0.06], rotation: [0.06, 0.07, 0.03] },
   raygun: { position: [0.03, 0.01, -0.05], rotation: [0.1, 0.12, 0.06] },
   thundergun: { position: [0.01, 0.02, -0.12], rotation: [0.05, 0.04, 0.02] },
-  m1911: { position: [0.04, 0.0, -0.04], rotation: [0.1, 0.12, 0.06] },
+  m1911: { position: [0.03, 0.01, -0.02], rotation: [0.08, 0.08, 0.04] },
+  m14: { position: [0.02, 0.015, -0.08], rotation: [0.04, 0.05, 0.02] },
 };
 
 const FP_POSE_DEFAULT = { position: [0.02, 0.02, -0.1], rotation: [0.06, 0.08, 0.02] };
@@ -881,11 +894,12 @@ export function reloadStyle(weaponId) {
  */
 export function WorldGun({ weaponId, scale = 1 }) {
   const id = weaponId || 'm1911';
+  const bottle = id === 'rakia';
   return (
     <group
-      position={[0.38, 0.82, 0.42]}
-      rotation={[0.15, 0, -0.05]}
-      scale={scale * 0.85}
+      position={bottle ? [0.4, 0.95, 0.38] : [0.38, 0.82, 0.42]}
+      rotation={bottle ? [0.35, 0.4, -1.1] : [0.15, 0, -0.05]}
+      scale={scale * (bottle ? 0.95 : 0.85)}
     >
       {hasGlbGun(id) ? (
         <GlbGun weaponId={id} />
@@ -911,21 +925,23 @@ export function DisplayGun({ weaponId, scale = 1 }) {
 }
 
 export function muzzleOffset(weaponId) {
+  // GLB firearms: tips measured after grip-pivot in GlbGun. Fantasy sticks keep
+  // the longer procedural offsets.
   switch (weaponId) {
     case 'm1911':
-      return [0.02, 0.05, -0.32];
+      return [0, 0.01, -0.2];
     case 'm14':
-      return [0.02, 0.05, -0.7];
+      return [0, -0.02, -0.32];
     case 'sniper':
-      return [0.02, 0.05, -0.88];
+      return [0, -0.04, -0.35];
     case 'mosin':
-      return [0.02, 0.06, -0.96];
+      return [0, 0.0, -0.36];
     case 'mp5':
-      return [0.02, 0.05, -0.48];
+      return [0, -0.01, -0.27];
     case 'olympia':
-      return [0.02, 0.08, -0.58];
+      return [0, -0.02, -0.32];
     case 'ak47':
-      return [0.02, 0.06, -0.62];
+      return [0, -0.02, -0.34];
     case 'raygun':
       return [0.02, 0.04, -0.54];
     case 'thundergun':
@@ -933,7 +949,8 @@ export function muzzleOffset(weaponId) {
     case 'spatula':
       return [0.04, 0.08, -0.52];
     case 'rakia':
-      return [0.05, 0.04, -0.28];
+      // Flash unused (melee); tip of the bottle base for any FX hooks.
+      return [0.02, 0.4, -0.04];
     default:
       return [0.02, 0.05, -0.48];
   }

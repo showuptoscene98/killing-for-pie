@@ -1,5 +1,5 @@
 import { ROUND } from '../constants';
-import { zombiesForRound } from './gameState';
+import { isBossRound, zombiesForRound } from './gameState';
 import { recordAchievementEvent } from '../camp/campData';
 import { queueAchievementBanners } from '../camp/achievements';
 
@@ -23,10 +23,15 @@ export function tickRound(state, dt, spawnZombie) {
     state.intermissionTimer -= dt;
     if (state.intermissionTimer <= 0) {
       state.round += 1;
-      state.zombiesRemainingToSpawn = zombiesForRound(state.round);
+      const boss = isBossRound(state.round);
+      state.bossPending = boss;
+      state.zombiesRemainingToSpawn =
+        zombiesForRound(state.round) + (boss ? 1 : 0);
       state.roundPhase = 'spawning';
-      state.roundBanner = `ROUND ${state.round}`;
-      state.roundBannerTimer = 2.5;
+      state.roundBanner = boss
+        ? `BOSS ROUND ${state.round}`
+        : `ROUND ${state.round}`;
+      state.roundBannerTimer = boss ? 3.2 : 2.5;
       const { newly } = recordAchievementEvent('round', { round: state.round });
       queueAchievementBanners(state, newly);
     }

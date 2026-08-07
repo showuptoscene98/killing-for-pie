@@ -136,19 +136,24 @@ function fireMelee(origin, baseDir, weaponDef, zombies, worldState, score) {
     const z = zombies[i];
     if (z.dead) continue;
     const yOff = z.y || 0;
+    const sc = z.scale || 1;
     // Prefer torso height vs camera
     const dx = z.x - origin.x;
     const dz = z.z - origin.z;
     const dist = Math.hypot(dx, dz);
-    if (dist > range || dist < 0.05) continue;
+    const reach = range + (sc > 1 ? (sc - 1) * 0.55 : 0);
+    if (dist > reach || dist < 0.05) continue;
     const inv = 1 / dist;
     const dot = dx * inv * _dir.x + dz * inv * _dir.z;
-    if (dot < 0.25) continue; // must be roughly in front
-    const dy = Math.abs(origin.y - (1.0 + yOff));
-    if (dy > 2.2) continue;
+    // Wide frontal cone — bottle swing, not a bayonet poke.
+    if (dot < 0.05) continue;
+    const dy = Math.abs(origin.y - (1.0 * sc + yOff));
+    if (dy > 2.4 * sc) continue;
     if (dist < bestDist) {
       bestDist = dist;
-      const headshot = origin.y > 1.35 + yOff && Math.abs(origin.y - (1.55 + yOff)) < 0.55;
+      const headY = 1.55 * sc + yOff;
+      const headshot =
+        origin.y > 1.35 * sc + yOff && Math.abs(origin.y - headY) < 0.55 * sc;
       best = { zombie: z, headshot, dist };
     }
   }
@@ -202,6 +207,7 @@ function rayHitZombie(origin, dir, z, bestDistCap) {
   let best = null;
   let bestDist = bestDistCap;
   const yOff = z.y || 0;
+  const sc = z.scale || 1;
 
   const consider = (x, y, zz, r, headshot) => {
     _body.set(x, y, zz);
@@ -212,8 +218,8 @@ function rayHitZombie(origin, dir, z, bestDistCap) {
     }
   };
 
-  consider(z.x, 0.95 + yOff, z.z, 0.5, false);
-  consider(z.x, 1.55 + yOff, z.z, 0.26, true);
+  consider(z.x, 0.95 * sc + yOff, z.z, 0.5 * sc, false);
+  consider(z.x, 1.55 * sc + yOff, z.z, 0.26 * sc, true);
 
   if (
     z.windowId &&

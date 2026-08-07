@@ -47,6 +47,7 @@ export function createInitialGameState(bonuses = DEFAULT_BONUSES) {
     intermissionTimer: 1.5,
     zombiesRemainingToSpawn: 0,
     zombiesAlive: 0,
+    bossPending: false,
     totalKills: 0,
     hp: maxHp,
     maxHp,
@@ -99,6 +100,14 @@ export function zombiesForRound(round) {
 
 export function zombieHpForRound(round) {
   return ROUND.baseHp + (round - 1) * ROUND.hpPerRound;
+}
+
+export function bossHpForRound(round) {
+  return Math.round(zombieHpForRound(round) * ROUND.bossHpMult);
+}
+
+export function isBossRound(round) {
+  return round > 0 && round % ROUND.bossEvery === 0;
 }
 
 export function zombieSpeedForRound(round) {

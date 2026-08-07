@@ -131,19 +131,69 @@ const FARMER_PALETTES = [
   },
 ];
 
+/** Map-themed boss tints (used when variant extras don't already theme them) */
+const BOSS_THEME_PALETTES = {
+  camp: {
+    body: '#3a4028',
+    bodyDark: '#2a2418',
+    head: '#5a4830',
+    hit: '#e07030',
+    accent: '#d48840',
+  },
+  stone: {
+    body: '#5a5448',
+    bodyDark: '#3a342c',
+    head: '#7a6e5a',
+    hit: DD.rust,
+    accent: '#8a3a28',
+  },
+  suburb: {
+    body: '#6a5a48',
+    bodyDark: '#4a3a30',
+    head: '#c4a888',
+    hit: DD.bloodLite,
+    accent: '#5a6a8a',
+  },
+  farm: {
+    body: '#4a3020',
+    bodyDark: '#2a1810',
+    head: '#6a4a30',
+    hit: DD.bloodLite,
+    accent: '#c8a848',
+  },
+  city: {
+    body: '#1a3a6a',
+    bodyDark: '#0e2040',
+    head: '#b89068',
+    hit: DD.bloodLite,
+    accent: '#e8c84a',
+  },
+};
+
 function paletteFor(z) {
   const seed = z?.variantSeed ?? z?.id ?? 0;
   if (z?.variant === 'gypsy') {
     const i = seed % GYPSY_PALETTES.length;
-    return GYPSY_PALETTES[Math.abs(i)];
+    const base = GYPSY_PALETTES[Math.abs(i)];
+    if (z.boss) {
+      return { ...base, body: '#142848', bodyDark: '#0a1428', gold: '#f0d060' };
+    }
+    return base;
   }
   if (z?.variant === 'cow') {
     const i = seed % COW_PALETTES.length;
-    return COW_PALETTES[Math.abs(i)];
+    const base = COW_PALETTES[Math.abs(i)];
+    if (z.boss) {
+      return { ...base, body: '#2a1810', bodyDark: '#140c08', horn: '#e8d8a0' };
+    }
+    return base;
   }
   if (z?.variant === 'farmer') {
     const i = seed % FARMER_PALETTES.length;
     return FARMER_PALETTES[Math.abs(i)];
+  }
+  if (z?.boss) {
+    return BOSS_THEME_PALETTES[z.bossTheme] || BOSS_THEME_PALETTES.stone;
   }
   return DEFAULT_PALETTE;
 }
@@ -188,6 +238,8 @@ export default function ZombieModel({ zombiesRef, index }) {
   const bracelet = useRef();
   const cowExtras = useRef();
   const farmerExtras = useRef();
+  const bossExtras = useRef();
+  const bossAccentMat = useRef();
   const hitLit = useRef(false);
   const lastKey = useRef('');
   const gaitRef = useRef(null);
@@ -202,15 +254,17 @@ export default function ZombieModel({ zombiesRef, index }) {
     }
 
     root.current.visible = true;
-    const sink = z.dead ? (1 - Math.max(0, z.deathTimer) / 0.6) * 1.2 : 0;
+    const sc = z.scale || 1;
+    const sink = z.dead ? (1 - Math.max(0, z.deathTimer) / 0.6) * 1.2 * sc : 0;
     const y = (z.y || 0) - sink;
     root.current.position.set(z.x, y, z.z);
+    root.current.scale.setScalar(sc);
     root.current.rotation.order = 'YXZ';
     root.current.rotation.set(z.dead ? Math.PI / 2 : 0, z.yaw, 0);
 
     const pal = paletteFor(z);
     const seed = z.variantSeed ?? z.id ?? 0;
-    const key = `${z.variant || 'default'}:${seed}`;
+    const key = `${z.boss ? 'boss' : 'z'}:${z.bossTheme || ''}:${z.variant || 'default'}:${seed}`;
     if (lastKey.current !== key) {
       lastKey.current = key;
       hitLit.current = false;
@@ -221,6 +275,13 @@ export default function ZombieModel({ zombiesRef, index }) {
       if (bracelet.current) bracelet.current.visible = z.variant === 'gypsy';
       if (cowExtras.current) cowExtras.current.visible = z.variant === 'cow';
       if (farmerExtras.current) farmerExtras.current.visible = z.variant === 'farmer';
+      const showBossTrim =
+        !!z.boss && z.variant !== 'gypsy' && z.variant !== 'cow' && z.variant !== 'farmer';
+      if (bossExtras.current) bossExtras.current.visible = showBossTrim;
+      if (bossAccentMat.current && pal.accent) {
+        bossAccentMat.current.color.set(pal.accent);
+        bossAccentMat.current.emissive?.set?.(pal.accent);
+      }
     }
 
     const gait = gaitRef.current || gaitFromSeed(seed);
@@ -560,6 +621,35 @@ export default function ZombieModel({ zombiesRef, index }) {
           <mesh position={[0, 0.72, -0.42]}>
             <sphereGeometry args={[0.07, 6, 6]} />
             <Toon color="#2a1c14" />
+          </mesh>
+        </group>
+
+        {/* Themed boss trim — camp / stone / suburb (variant bosses use their own extras) */}
+        <group ref={bossExtras} visible={false}>
+          <mesh position={[-0.28, 1.35, 0]} rotation={[0, 0, 0.45]} castShadow>
+            <coneGeometry args={[0.08, 0.28, 5]} />
+            <Toon
+              ref={bossAccentMat}
+              color={DD.rust}
+              emissive={DD.rust}
+              emissiveIntensity={0.45}
+            />
+          </mesh>
+          <mesh position={[0.28, 1.35, 0]} rotation={[0, 0, -0.45]} castShadow>
+            <coneGeometry args={[0.08, 0.28, 5]} />
+            <Toon color={DD.rust} emissive={DD.rust} emissiveIntensity={0.45} />
+          </mesh>
+          <mesh position={[0, 1.78, 0]} castShadow>
+            <cylinderGeometry args={[0.12, 0.16, 0.12, 6]} />
+            <Toon color={DD.bone} />
+          </mesh>
+          <mesh position={[0, 1.9, 0]}>
+            <coneGeometry args={[0.06, 0.18, 5]} />
+            <Toon color={DD.bone} />
+          </mesh>
+          <mesh position={[0, 1.12, 0.16]}>
+            <boxGeometry args={[0.42, 0.1, 0.06]} />
+            <Toon color={DD.ink} />
           </mesh>
         </group>
 

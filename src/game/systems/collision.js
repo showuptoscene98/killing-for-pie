@@ -1,5 +1,5 @@
 import { getActiveMap } from '../map/activeMap';
-import { PLAYER } from '../constants';
+import { PLAYER, ROUND } from '../constants';
 
 function overlaps(ax, az, ar, bx, bz, bw, bd) {
   const closestX = Math.max(bx - bw / 2, Math.min(ax, bx + bw / 2));
@@ -557,4 +557,60 @@ export function collidePlayer(x, z, colliders = [], feetY = 0) {
 export function collideEntity(x, z, radius, colliders = [], feetY = 0) {
   const pos = resolveAgainst(x, z, radius, colliders, feetY);
   return { x: pos.x, z: pos.z, y: sampleFloorY(pos.x, pos.z, feetY) };
+}
+
+/**
+ * Solid body collision vs boss zombies. Mutates boss xz when pushBoss is true.
+ * Returns the resolved player xz.
+ */
+export function separateFromBossZombies(
+  px,
+  pz,
+  zombies,
+  {
+    playerRadius = PLAYER.radius,
+    playerFeetY = 0,
+    pushBoss = true,
+  } = {}
+) {
+  let x = px;
+  let z = pz;
+  if (!zombies?.length) return { x, z };
+
+  for (let i = 0; i < zombies.length; i++) {
+    const boss = zombies[i];
+    if (!boss || !boss.boss || boss.dead) continue;
+    if (boss.phase && boss.phase !== 'chase') continue;
+    if (Math.abs((boss.y || 0) - playerFeetY) > 1.25) continue;
+
+    const br = boss.radius || ROUND.bossRadius;
+    const minDist = playerRadius + br;
+    const dx = x - boss.x;
+    const dz = z - boss.z;
+    const dist = Math.hypot(dx, dz);
+    if (dist >= minDist) continue;
+
+    if (dist < 1e-4) {
+      const a = (boss.id || 0) * 2.399;
+      const nx = Math.cos(a);
+      const nz = Math.sin(a);
+      x = boss.x + nx * minDist;
+      z = boss.z + nz * minDist;
+      continue;
+    }
+
+    const push = minDist - dist;
+    const nx = dx / dist;
+    const nz = dz / dist;
+    // Player takes most of the shove so bosses feel like solid walls
+    const playerShare = pushBoss ? 0.72 : 1;
+    x += nx * push * playerShare;
+    z += nz * push * playerShare;
+    if (pushBoss) {
+      boss.x -= nx * push * (1 - playerShare);
+      boss.z -= nz * push * (1 - playerShare);
+    }
+  }
+
+  return { x, z };
 }

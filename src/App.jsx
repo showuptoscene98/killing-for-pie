@@ -339,7 +339,12 @@ function AppRoutes() {
   return (
     <div className="App">
       {screen === 'menu' && (
-        <MainMenu onPlay={toCamp} onCamp={toCamp} onPlaySetup={toPlaySetup} />
+        <MainMenu
+          onPlay={toCamp}
+          onCamp={toCamp}
+          onPlaySetup={toPlaySetup}
+          onJoinLobby={(code) => toCoop(null, { code, intent: 'join' })}
+        />
       )}
       {screen === 'play' && (
         <PlaySetup

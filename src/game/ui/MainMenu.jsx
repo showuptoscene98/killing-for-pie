@@ -12,6 +12,7 @@ import CharacterCustomize from './CharacterCustomize';
 import MenuMuteButton from './MenuMuteButton';
 import SettingsPanel, { SettingsButton } from './SettingsPanel';
 import NotificationBell from './NotificationBell';
+import MenuFriendsPanel from './MenuFriendsPanel';
 import { formatKeyCode } from '../keybinds';
 import { useKeybinds } from '../hooks/useStores';
 import { useCamp } from '../camp/CampContext';
@@ -41,7 +42,7 @@ function controlsLines(binds) {
   ];
 }
 
-export default function MainMenu({ onPlay, onCamp, onPlaySetup }) {
+export default function MainMenu({ onPlay, onCamp, onPlaySetup, onJoinLobby }) {
   const { camp, refreshCamp } = useCamp();
   const [soundOn, setSoundOn] = useState(() => isAudioUnlocked());
   const [customize, setCustomize] = useState(false);
@@ -87,7 +88,9 @@ export default function MainMenu({ onPlay, onCamp, onPlaySetup }) {
     <div className="screen menu-screen" onPointerDown={handlePointerDown}>
       <MenuBackdrop />
       <div className="menu-bg menu-bg--overlay" />
-      <div className={`menu-layout${customize ? ' menu-layout--customize' : ''}`}>
+      <div
+        className={`menu-layout${customize ? ' menu-layout--customize' : ' menu-layout--friends'}`}
+      >
         <div className="menu-content">
           <p className="menu-eyebrow">The hamlet endures</p>
           <h1 className="menu-title">Killing for Pie!</h1>
@@ -158,16 +161,10 @@ export default function MainMenu({ onPlay, onCamp, onPlaySetup }) {
             ))}
           </ul>
         </div>
-        {customize && <CharacterCustomize />}
+        {customize ? <CharacterCustomize /> : <MenuFriendsPanel onJoinLobby={onJoinLobby} />}
       </div>
       <div className="menu-corner-btns">
-        <NotificationBell
-          onJoinLobby={(code) => {
-            const url = new URL(window.location.href);
-            url.searchParams.set('coop', String(code).toUpperCase());
-            window.location.assign(url.toString());
-          }}
-        />
+        <NotificationBell onJoinLobby={onJoinLobby} />
         <SettingsButton onClick={() => setSettingsOpen(true)} />
         <MenuMuteButton />
       </div>

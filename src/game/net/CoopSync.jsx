@@ -674,6 +674,10 @@ function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
       climbT: 0,
       variant: z.variant || null,
       variantSeed: z.variantSeed ?? 0,
+      boss: !!z.boss,
+      bossTheme: z.bossTheme || null,
+      scale: z.scale || 1,
+      radius: z.radius || 0.35,
     });
   }
 

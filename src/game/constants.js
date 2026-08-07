@@ -58,6 +58,17 @@ export const ROUND = {
   attackEngage: 1.4,
   /** Must still be this close at the strike frame or the swing misses */
   attackHitRange: 1.7,
+  /** Spawn a themed boss zombie every N rounds */
+  bossEvery: 10,
+  /** Boss HP = regular round HP × this */
+  bossHpMult: 10,
+  bossSpeedMult: 0.72,
+  bossScale: 1.85,
+  /** Body radius vs walls / player (regular zombies use 0.35) */
+  bossRadius: 0.62,
+  bossAttackDamage: 40,
+  bossAttackEngage: 1.85,
+  bossAttackHitRange: 2.15,
 };
 
 export const INTERACT_RANGE = 2.8;

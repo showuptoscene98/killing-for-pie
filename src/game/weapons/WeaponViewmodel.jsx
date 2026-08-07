@@ -743,7 +743,38 @@ function ViewmodelScene() {
     const adsT = state.adsAmount || 0;
     const adsHide = adsT > 0.05 && !!def.adsFov;
 
-    const meleeThrust = style === 'melee' ? rKick * 1.4 : 0;
+    /**
+     * Rakia (melee): drive a horizontal chop from the fire-cooldown clock so the
+     * bottle arcs across the screen instead of bayonet-poking down -Z. Kick still
+     * adds the impact punch on contact.
+     */
+    let swingX = 0;
+    let swingY = 0;
+    let swingZ = 0;
+    let swingPitch = 0;
+    let swingYaw = 0;
+    let swingRoll = 0;
+    let swingBottle = 0;
+    if (style === 'melee') {
+      const span = def.fireRate || 0.55;
+      const active = state.fireCooldown > 0;
+      const ct = active
+        ? clamp01(1 - Math.max(0, state.fireCooldown) / span)
+        : 1;
+      // Damage lands on click — pose peaks there, then chops across into follow-through.
+      const strike = active ? 1 - smoothstep(0.0, 0.42, ct) : 0;
+      const follow = active
+        ? smoothstep(0.18, 0.48, ct) * (1 - smoothstep(0.48, 0.92, ct))
+        : 0;
+      swingX = strike * -0.34 + follow * -0.2;
+      swingY = strike * 0.1 + follow * -0.07;
+      swingZ = strike * -0.1 + follow * -0.05;
+      swingPitch = strike * 0.75 + follow * 0.35;
+      swingYaw = strike * -1.5 + follow * -0.55;
+      swingRoll = strike * 1.1 + follow * 0.4;
+      swingBottle = strike * -0.7 + follow * -0.22;
+    }
+
     const adsDrop = adsHide ? adsT * 1.35 : 0;
     const adsSide = adsHide ? adsT * 0.75 : 0;
     root.current.position.set(
@@ -752,7 +783,7 @@ function ViewmodelScene() {
         swayX +
         pose.twist * -0.04 +
         rKick * a.kickSide +
-        (style === 'melee' ? rKick * -0.08 : 0) +
+        swingX +
         adsSide,
       -0.32 +
         bobY * (1 - adsT) +
@@ -760,21 +791,24 @@ function ViewmodelScene() {
         pose.drop +
         pose.slap * 0.02 +
         rKick * a.kickUp +
-        (style === 'melee' ? rKick * 0.06 : 0) -
+        swingY -
         adsDrop,
-      -0.45 + pose.pull - rKick * a.kickBack - meleeThrust
+      -0.45 + pose.pull - rKick * a.kickBack + swingZ
     );
     root.current.rotation.set(
-      0.08 + rKick * a.kickPitch + pose.tip * 0.4 + pose.slap,
-      0.1 + pose.twist * 0.2 + rKick * a.kickYaw,
-      0.05 + pose.twist * 0.85 + pose.roll + swayRoll + rKick * a.kickRoll
+      0.08 + rKick * a.kickPitch + pose.tip * 0.4 + pose.slap + swingPitch,
+      0.1 + pose.twist * 0.2 + rKick * a.kickYaw + swingYaw,
+      0.05 + pose.twist * 0.85 + pose.roll + swayRoll + rKick * a.kickRoll + swingRoll
     );
     root.current.scale.setScalar(1.35 * (1 - adsT * 0.92));
     root.current.visible = show && adsT < 0.78;
 
-    gunRig.current.rotation.x = pose.tip * 0.2 + rKick * a.gunKickPitch;
-    gunRig.current.position.z = rKick * -a.gunKickBack;
-    gunRig.current.position.y = pose.slap * 0.015;
+    gunRig.current.rotation.x = pose.tip * 0.2 + rKick * a.gunKickPitch + swingPitch * 0.35;
+    gunRig.current.rotation.y = swingYaw * 0.25;
+    gunRig.current.rotation.z = swingBottle + swingRoll * 0.3;
+    gunRig.current.position.z = rKick * -a.gunKickBack + swingZ * 0.4;
+    gunRig.current.position.y = pose.slap * 0.015 + swingY * 0.3;
+    gunRig.current.position.x = swingX * 0.35;
 
     if (magRef.current) {
       const rest = magRestRef.current;
@@ -801,21 +835,36 @@ function ViewmodelScene() {
     }
 
     if (leftHand.current) {
-      // The support hand rides back with the bolt during a manual cycle.
+      // Support hand rides the bolt on manuals; on Rakia it guards the torso.
+      const meleeGuard = style === 'melee' ? 1 : 0;
       leftHand.current.position.set(
-        pose.leftX + cyclePull * 0.25,
-        pose.leftY + cyclePull * 0.3,
-        pose.leftZ - cyclePull * 0.45
+        pose.leftX + cyclePull * 0.25 - meleeGuard * 0.06 + swingX * 0.15,
+        pose.leftY + cyclePull * 0.3 - meleeGuard * 0.04 + swingY * 0.2,
+        pose.leftZ - cyclePull * 0.45 + meleeGuard * 0.08
       );
       leftHand.current.rotation.set(
-        pose.leftPitch + cyclePull * 1.6,
-        pose.leftYaw,
-        pose.leftX * 0.5
+        pose.leftPitch + cyclePull * 1.6 + meleeGuard * 0.35,
+        pose.leftYaw - meleeGuard * 0.2,
+        pose.leftX * 0.5 - meleeGuard * 0.25
       );
     }
     if (rightHand.current) {
-      rightHand.current.rotation.set(pose.tip * 0.08, 0, pose.twist * 0.05);
-      rightHand.current.position.set(0, pose.tip * -0.01, pose.pull * 0.5);
+      if (style === 'melee') {
+        // Fist locked on the bottle neck — rides the swing.
+        rightHand.current.position.set(
+          swingX * 0.2,
+          -0.02 + swingY * 0.25,
+          0.02 + swingZ * 0.3
+        );
+        rightHand.current.rotation.set(
+          0.15 + swingPitch * 0.4,
+          swingYaw * 0.2,
+          -0.35 + swingRoll * 0.35
+        );
+      } else {
+        rightHand.current.rotation.set(pose.tip * 0.08, 0, pose.twist * 0.05);
+        rightHand.current.position.set(0, pose.tip * -0.01, pose.pull * 0.5);
+      }
     }
 
     if (slideRef.current) {

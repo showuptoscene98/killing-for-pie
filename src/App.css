@@ -1181,9 +1181,68 @@
   width: 100%;
 }
 
+.menu-layout--friends {
+  max-width: 1180px;
+  align-items: stretch;
+}
+
 .menu-layout--customize .menu-content {
   text-align: left;
   max-width: 420px;
+}
+
+.menu-friends-panel {
+  width: min(320px, 92vw);
+  padding: 1.15rem 1.25rem 1.35rem;
+  background: rgba(12, 10, 8, 0.78);
+  border: 1px solid rgba(201, 162, 39, 0.28);
+  animation: fadeUp 0.45s ease-out;
+  align-self: center;
+  max-height: min(78vh, 640px);
+  overflow-y: auto;
+}
+
+.menu-friends-title {
+  margin: 0 0 0.25rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: #f0ebe0;
+  letter-spacing: 0.04em;
+}
+
+.menu-friends-sub {
+  margin: 0 0 0.85rem;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: rgba(196, 180, 138, 0.78);
+  line-height: 1.35;
+}
+
+.menu-friends-list {
+  max-height: 180px;
+}
+
+.menu-friends-join {
+  margin: 0.55rem 0 0.55rem;
+}
+
+.menu-friends-squad {
+  max-height: 140px;
+  overflow: auto;
+}
+
+.menu-friends-squad li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.menu-friends-squad .menu-btn {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.62rem;
 }
 
 .menu-btn--active {
@@ -2533,6 +2592,8 @@
 }
 
 .menu-corner-btns .notif-dropdown {
+  top: auto;
+  bottom: calc(100% + 0.4rem);
   right: 0;
 }
 

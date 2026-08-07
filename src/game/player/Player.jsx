@@ -5,7 +5,11 @@ import { useGame } from '../GameContext';
 import { useCoop } from '../net/CoopContext';
 import { coopSendFire, coopSendInteract } from '../net/CoopSync';
 import { PLAYER, INTERACT_RANGE, BARRICADE, REVIVE } from '../constants';
-import { collidePlayer, buildFrameColliders } from '../systems/collision';
+import {
+  collidePlayer,
+  buildFrameColliders,
+  separateFromBossZombies,
+} from '../systems/collision';
 import { stepVertical, moveSpeedScale, tryStartSlide, stepSlide } from '../systems/movement';
 import { getClosedDoorColliders, tryBuyDoor } from '../systems/DoorSystem';
 import {
@@ -204,6 +208,19 @@ export default function Player({ onShoot }) {
     } else {
       state.velocityX = 0;
       state.velocityZ = 0;
+    }
+
+    // Boss zombies have solid bodies — don't walk through them
+    {
+      const bossPush = separateFromBossZombies(
+        state.position.x,
+        state.position.z,
+        zombiesRef.current,
+        { playerFeetY: feetY, pushBoss: false }
+      );
+      const cleared = collidePlayer(bossPush.x, bossPush.z, colliders, feetY);
+      state.position.x = cleared.x;
+      state.position.z = cleared.z;
     }
 
     const jumpEdge = inputState.jumpPressed;
