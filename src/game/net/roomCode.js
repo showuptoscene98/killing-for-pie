@@ -1,3 +1,4 @@
+/** No I/O/0/1 — they are indistinguishable when read aloud or over a stream. */
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 export const MAX_COOP_PLAYERS = 4;
@@ -5,9 +6,11 @@ export const MAX_COOP_PLAYERS = 4;
 /** PeerJS peer id prefix — must stay alphanumeric. */
 export const PEER_ID_PREFIX = 'kfp';
 
+export const ROOM_CODE_LENGTH = 6;
+
 export function generateRoomCode() {
   let code = '';
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
     code += ALPHABET[Math.floor(Math.random() * ALPHABET.length)];
   }
   return code;
@@ -15,20 +18,44 @@ export function generateRoomCode() {
 
 export function normalizeRoomCode(raw) {
   if (!raw) return '';
-  let text = String(raw).trim().toUpperCase();
-  // Accept full invite URLs
+  let text = String(raw).trim();
+
+  /**
+   * Accept a full invite URL. This has to happen before upper-casing: query
+   * parameter names are case sensitive, so uppercasing first turned ?coop= into
+   * ?COOP=, searchParams.get('coop') returned null, and the whole URL fell
+   * through to the strip below — pasting an invite link yielded "HTTPSEXA".
+   */
   try {
-    if (/^https?:\/\//i.test(text) || text.includes('?coop=')) {
+    if (/^https?:\/\//i.test(text) || /\?coop=/i.test(text)) {
       const url = new URL(
         text.includes('://') ? text : `https://dummy.local${text.startsWith('/') ? '' : '/'}${text}`
       );
       const q = url.searchParams.get('coop');
       if (q) text = q;
     }
-  } catch (_) {
-    /* fall through */
+  } catch {
+    /* not a URL — treat it as a raw code */
   }
-  text = text.replace(/^KFP[-_]?/i, '');
+
+  text = text.toUpperCase();
+  /**
+   * Accept a pasted peer id (kfpABCDEF) without eating a code that merely
+   * starts with those letters. K, F and P are all in the alphabet, so KFPQRS is
+   * an ordinary generated code — blindly stripping the prefix left three
+   * characters, which isRoomCode then rejected, so roughly one lobby in 32768
+   * handed out a code nobody could join. Only an explicit separator or an exact
+   * peer-id length is treated as a prefix.
+   */
+  const separated = /^KFP[-_]/i.test(text);
+  if (separated) {
+    text = text.slice(PEER_ID_PREFIX.length + 1);
+  } else if (
+    text.length === PEER_ID_PREFIX.length + ROOM_CODE_LENGTH &&
+    /^KFP/i.test(text)
+  ) {
+    text = text.slice(PEER_ID_PREFIX.length);
+  }
   text = text.replace(/[^A-Z0-9]/g, '');
   return text.slice(0, 8);
 }
