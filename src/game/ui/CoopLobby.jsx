@@ -400,7 +400,7 @@ export default function CoopLobby({ onBack, initialCode = '', initialIntent = nu
                   typeof window !== 'undefined' &&
                   /localhost|127\.0\.0\.1/i.test(window.location.hostname) && (
                     <p className="coop-error" style={{ marginTop: '0.75rem' }}>
-                      You&apos;re on localhost — deploy the build (Netlify/Vercel) so friends can open the invite link. Or test with two tabs on this PC.
+                      You&apos;re on localhost — deploy to GitHub Pages so friends can open the invite link. Or test with two tabs on this PC.
                     </p>
                   )}
               </div>

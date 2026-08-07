@@ -9,6 +9,7 @@ import CowboyKit, { usesCowboyKit } from './CowboyKit';
 import FemaleHair, { FemaleChest, applyGenderLook, bodyDims } from './GenderLook';
 import Toon from '../style/Toon';
 import { WorldGun } from '../weapons/GunMeshes';
+import { BodyPart, BodyHead, useBodyStyle, headAnchor } from '../style/BodyParts';
 
 function remoteLoadout(r) {
   if (r.outfitId === 'custom' && r.outfitLoadout) {
@@ -87,27 +88,19 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
       const d = bodyDims(g);
       if (torso.current) {
         torso.current.scale.set(
-          d.torso[0] / 0.34,
-          d.torso[1] / 0.76,
-          d.torso[2] / 0.34
+          d.torso[0] / 0.52,
+          d.torso[1] / 0.72,
+          d.torso[2] / 0.3
         );
         torso.current.position.y = d.torsoY;
       }
       if (pantsRMesh.current) {
         pantsRMesh.current.position.x = d.legX;
-        pantsRMesh.current.scale.set(
-          d.leg[0] / 0.14,
-          d.leg[1] / 0.72,
-          d.leg[2] / 0.14
-        );
+        pantsRMesh.current.scale.set(1, 1, 1);
       }
       if (pantsLMesh.current) {
         pantsLMesh.current.position.x = -d.legX;
-        pantsLMesh.current.scale.set(
-          d.leg[0] / 0.14,
-          d.leg[1] / 0.72,
-          d.leg[2] / 0.14
-        );
+        pantsLMesh.current.scale.set(1, 1, 1);
       }
       if (headMesh.current) {
         headMesh.current.position.y = d.headY - 0.03;
@@ -159,35 +152,52 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
   });
 
   const d = bodyDims(gender);
+  const style = useBodyStyle();
 
   return (
-    <group ref={root} visible={false}>
-      <mesh ref={pantsRMesh} position={[0.11, 0.36, 0]} castShadow>
-        <capsuleGeometry args={[0.07, 0.58, 5, 10]} />
+    <group ref={root} visible={false} key={style}>
+      <BodyPart
+        ref={pantsRMesh}
+        position={[0.12, 0.35, 0]}
+        args={[0.18, 0.7, 0.2]}
+        style={style}
+        castShadow
+      >
         <Toon ref={pantsR} color="#2a241c" />
-      </mesh>
-      <mesh ref={pantsLMesh} position={[-0.11, 0.36, 0]} castShadow>
-        <capsuleGeometry args={[0.07, 0.58, 5, 10]} />
+      </BodyPart>
+      <BodyPart
+        ref={pantsLMesh}
+        position={[-0.12, 0.35, 0]}
+        args={[0.18, 0.7, 0.2]}
+        style={style}
+        castShadow
+      >
         <Toon ref={pantsL} color="#2a241c" />
-      </mesh>
-      <mesh ref={torso} position={[0, 1.05, 0]} scale={[1, 1, 0.82]} castShadow>
-        <capsuleGeometry args={[0.17, 0.42, 6, 12]} />
+      </BodyPart>
+      <BodyPart
+        ref={torso}
+        position={[0, 1.05, 0]}
+        args={[0.52, 0.72, 0.3]}
+        style={style}
+        castShadow
+      >
         <Toon
           ref={torsoMat}
           color="#c4b48a"
           emissive="#c4b48a"
           emissiveIntensity={0.05}
         />
-      </mesh>
+      </BodyPart>
       {gender === 'female' && (
         <FemaleChest
           color={torsoColor}
           y={d.chestY || 1.18}
           Material={Toon}
+          style={style}
         />
       )}
-      <mesh ref={accentMesh} position={[0.14, 1.15, 0.14]} rotation={[Math.PI / 2, 0, 0.3]}>
-        <capsuleGeometry args={[0.04, 0.04, 4, 8]} />
+      <mesh ref={accentMesh} position={[0.16, 1.15, 0.16]}>
+        <boxGeometry args={[0.14, 0.14, 0.02]} />
         <Toon
           ref={accentMat}
           color="#8a2020"
@@ -195,43 +205,47 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
           emissiveIntensity={0.25}
         />
       </mesh>
-      <mesh position={[0.32, 1.0, 0.12]} rotation={[0.35, 0, -0.2]} castShadow>
-        <capsuleGeometry args={[0.05, 0.42, 5, 10]} />
+      <BodyPart
+        position={[0.36, 1.0, 0.15]}
+        rotation={[0.35, 0, -0.2]}
+        args={[0.13, 0.5, 0.13]}
+        style={style}
+        castShadow
+      >
         <Toon ref={sleeveR} color="#a89878" />
-      </mesh>
-      <mesh position={[-0.32, 1.0, 0.12]} rotation={[0.35, 0, 0.2]} castShadow>
-        <capsuleGeometry args={[0.05, 0.42, 5, 10]} />
+      </BodyPart>
+      <BodyPart
+        position={[-0.36, 1.0, 0.15]}
+        rotation={[0.35, 0, 0.2]}
+        args={[0.13, 0.5, 0.13]}
+        style={style}
+        castShadow
+      >
         <Toon ref={sleeveL} color="#a89878" />
-      </mesh>
-      <mesh ref={headMesh} position={[0, 1.52, 0]} castShadow>
-        <capsuleGeometry args={[0.13, 0.12, 5, 12]} />
+      </BodyPart>
+      <BodyHead ref={headMesh} position={[0, 1.52, 0]} size={0.32} style={style} castShadow>
         <Toon ref={headMat} color="#a89878" />
-      </mesh>
-      {hairOutfit && <FemaleHair o={hairOutfit} y={d.headY - 0.03} />}
+      </BodyHead>
+      {hairOutfit && <FemaleHair o={hairOutfit} y={d.headY - 0.03} style={style} />}
       <mesh ref={hatChef} position={[0, 1.82, 0]} visible={false}>
-        <cylinderGeometry args={[0.16, 0.18, 0.32, 12]} />
+        <cylinderGeometry args={[0.18, 0.2, 0.32, 12]} />
         <Toon color="#c4b48a" />
       </mesh>
       <mesh
         ref={hatDelivery}
-        position={[0, 1.7, 0]}
+        position={[0, 1.68, 0]}
         rotation={[-0.15, 0, 0]}
         visible={false}
       >
-        <cylinderGeometry args={[0.18, 0.2, 0.1, 12]} />
+        <cylinderGeometry args={[0.2, 0.22, 0.1, 12]} />
         <Toon color="#2a241c" />
       </mesh>
       <mesh ref={hoodHazmat} position={[0, 1.68, 0]} visible={false}>
-        <capsuleGeometry args={[0.16, 0.08, 5, 10]} />
+        <sphereGeometry args={[0.2, 10, 10]} />
         <Toon color="#6a5a28" />
       </mesh>
-      <mesh
-        ref={maskMesh}
-        position={[0, 1.52, 0.14]}
-        visible={false}
-        rotation={[Math.PI / 2, 0, 0]}
-      >
-        <capsuleGeometry args={[0.08, 0.06, 4, 8]} />
+      <mesh ref={maskMesh} position={[0, 1.52, 0.14]} visible={false}>
+        <boxGeometry args={[0.28, 0.16, 0.06]} />
         <Toon color="#4a5c30" transparent opacity={0.75} />
       </mesh>
 
@@ -241,7 +255,7 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
         </group>
       )}
 
-      {kitOutfit && <BulgarianKit o={kitOutfit} />}
+      {kitOutfit && <BulgarianKit o={kitOutfit} headY={d.headY - 0.03} style={style} />}
       {mossadOutfit && (
         <MossadKit o={mossadOutfit} yarmulke={!!mossadOutfit.showYarmulke} />
       )}
@@ -249,12 +263,11 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
       {cowboyOutfit && (
         <CowboyKit
           o={cowboyOutfit}
+          headY={bodyDims(gender).headY - 0.03}
           hatY={
-            bodyDims(gender).headY -
-            0.03 +
-            0.16 * (gender === 'female' ? 0.9 : 1) +
-            0.08
+            headAnchor(bodyDims(gender).headY - 0.03, style).crownY + 0.09
           }
+          style={style}
         />
       )}
     </group>

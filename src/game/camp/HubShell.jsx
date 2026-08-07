@@ -9,7 +9,9 @@ import BlackjackOverlay from '../ui/BlackjackOverlay';
 import QuestLog from '../ui/QuestLog';
 import SettingsPanel, { SettingsButton } from '../ui/SettingsPanel';
 import MenuMuteButton from '../ui/MenuMuteButton';
+import NotificationBell from '../ui/NotificationBell';
 import AchievementsPanel from '../ui/AchievementsPanel';
+import { useSocial } from '../net/SocialContext';
 import { getNpc } from './npcData';
 import { buildDialogue } from './dialogueData';
 import {
@@ -64,9 +66,22 @@ function CampHUD({
   onLeaveSquad,
 }) {
   const { camp, bonuses, clearLastRun } = useCamp();
+  const social = useSocial();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState('');
+  const [browserTab, setBrowserTab] = useState('all');
+  const [friendCodeInput, setFriendCodeInput] = useState('');
+  const [friendMsg, setFriendMsg] = useState('');
+  const [friendBusy, setFriendBusy] = useState(false);
   const inLobby = squadPhase === 'lobby' || squadPhase === 'connecting';
+
+  useEffect(() => {
+    if (!deployOpen || (deployMode !== 'browser' && deployMode !== 'friends')) return;
+    social.listLobbies?.({
+      tab: deployMode === 'friends' ? 'friends' : browserTab,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- listLobbies identity churns
+  }, [deployOpen, deployMode, browserTab, social.available, social.friends?.length]);
 
   const copyCode = useCallback(async () => {
     const text = roomCode || '';
@@ -94,6 +109,20 @@ function CampHUD({
     }
   }, [inviteUrl, roomCode]);
 
+  const copyFriendCode = useCallback(async () => {
+    if (!social.friendCode) return;
+    try {
+      await navigator.clipboard.writeText(social.friendCode);
+      setCopied('friend');
+      play('menuClick');
+      setTimeout(() => setCopied(''), 1500);
+    } catch {
+      /* ignore */
+    }
+  }, [social.friendCode]);
+
+  const mapLabel = (id) => MAP_LIST.find((m) => m.id === id)?.name || id;
+
   return (
     <>
       <div className="hub-hud-top">
@@ -102,6 +131,18 @@ function CampHUD({
           <span className="hub-bank-value">{camp.bank}</span>
         </div>
         <div className="hub-hud-actions">
+          <NotificationBell
+            onJoinLobby={(code) => {
+              setJoinInput(code);
+              setDeployMode('join');
+              setDeployOpen(true);
+              onJoinSquad(code);
+            }}
+            onOpenFriends={() => {
+              setDeployMode('friends');
+              setDeployOpen(true);
+            }}
+          />
           <button type="button" className="hub-hud-btn" onClick={() => setQuestOpen(true)}>
             Quests (J)
           </button>
@@ -225,6 +266,8 @@ function CampHUD({
                     { id: 'solo', label: 'Solo' },
                     { id: 'host', label: 'Host / Invite' },
                     { id: 'join', label: 'Join Code' },
+                    { id: 'browser', label: 'Browser' },
+                    { id: 'friends', label: 'Friends' },
                   ].map((m) => (
                     <button
                       key={m.id}
@@ -243,7 +286,7 @@ function CampHUD({
               </>
             )}
 
-            {(deployMode !== 'join' || inLobby) && (
+            {(deployMode === 'solo' || deployMode === 'host' || inLobby) && (
               <>
                 <p className="coop-section-label">Map</p>
                 <div className="coop-map-cards">
@@ -267,6 +310,17 @@ function CampHUD({
               </>
             )}
 
+            {deployMode === 'host' && !inLobby && social.available && (
+              <label className="hub-toggle-row">
+                <input
+                  type="checkbox"
+                  checked={social.listPublic}
+                  onChange={(e) => social.setListPublic(e.target.checked)}
+                />
+                <span>List publicly in server browser</span>
+              </label>
+            )}
+
             {deployMode === 'join' && !inLobby && (
               <label className="hub-join-field">
                 <span>Friend&apos;s room code</span>
@@ -278,6 +332,219 @@ function CampHUD({
                   maxLength={24}
                 />
               </label>
+            )}
+
+            {deployMode === 'browser' && !inLobby && (
+              <div className="hub-browser">
+                {!social.configured ? (
+                  <p className="hub-invite-hint">
+                    Server browser needs Supabase keys (REACT_APP_SUPABASE_URL /
+                    REACT_APP_SUPABASE_ANON_KEY). Restart the dev server after editing
+                    .env.local.
+                  </p>
+                ) : !social.available ? (
+                  <p className="hub-invite-hint">
+                    {social.error ||
+                      'Social offline — enable Anonymous Sign-Ins in the Supabase dashboard.'}
+                  </p>
+                ) : (
+                  <>
+                    <div className="hub-deploy-modes">
+                      {[
+                        { id: 'all', label: 'All' },
+                        { id: 'public', label: 'Public' },
+                        { id: 'friends', label: 'Friends' },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className={`hub-mode-btn${browserTab === t.id ? ' is-selected' : ''}`}
+                          onClick={() => {
+                            setBrowserTab(t.id);
+                            play('menuHover');
+                          }}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="hub-mode-btn"
+                        onClick={() => {
+                          play('menuClick');
+                          social.listLobbies({ tab: browserTab });
+                        }}
+                      >
+                        Refresh
+                      </button>
+                    </div>
+                    <ul className="hub-browser-list">
+                      {(social.lobbies || []).length === 0 && (
+                        <li className="is-empty">No open lobbies — host one or wait.</li>
+                      )}
+                      {(social.lobbies || []).map((row) => (
+                        <li key={row.id}>
+                          <div className="hub-browser-row">
+                            <div>
+                              <span className="hub-browser-host">
+                                {row.hostCallsign}
+                                {row.isFriend ? ' · Friend' : ''}
+                              </span>
+                              <span className="hub-browser-meta">
+                                {mapLabel(row.map_id)} · {row.player_count}/{row.max_players}
+                                {row.is_public ? '' : ' · Private'}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              className="menu-btn"
+                              disabled={squadBusy || row.player_count >= row.max_players}
+                              onClick={() => onJoinSquad(row.room_code)}
+                            >
+                              Join
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            )}
+
+            {deployMode === 'friends' && !inLobby && (
+              <div className="hub-friends">
+                {!social.configured ? (
+                  <p className="hub-invite-hint">
+                    Friends need Supabase keys (REACT_APP_SUPABASE_URL /
+                    REACT_APP_SUPABASE_ANON_KEY). Restart the dev server after editing
+                    .env.local.
+                  </p>
+                ) : !social.available ? (
+                  <p className="hub-invite-hint">
+                    {social.error ||
+                      'Friends offline — enable Anonymous Sign-Ins in the Supabase dashboard.'}
+                  </p>
+                ) : (
+                  <>
+                    <div className="hub-invite-card">
+                      <p className="coop-section-label">Your friend code</p>
+                      <div className="hub-invite-code">{social.friendCode || '……'}</div>
+                      <div className="hub-invite-actions">
+                        <button type="button" className="menu-btn" onClick={copyFriendCode}>
+                          {copied === 'friend' ? 'Copied!' : 'Copy Code'}
+                        </button>
+                      </div>
+                      <p className="hub-invite-hint">
+                        Callsign: {social.callsign} — change it in Settings.
+                      </p>
+                    </div>
+                    <label className="hub-join-field">
+                      <span>Add friend by code</span>
+                      <input
+                        value={friendCodeInput}
+                        onChange={(e) => setFriendCodeInput(e.target.value.toUpperCase())}
+                        placeholder="ABC123"
+                        maxLength={8}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="menu-btn"
+                      disabled={friendBusy || friendCodeInput.trim().length < 6}
+                      onClick={async () => {
+                        setFriendBusy(true);
+                        setFriendMsg('');
+                        try {
+                          unlockAudio();
+                          play('menuClick');
+                          const t = await social.addFriendByCode(friendCodeInput);
+                          setFriendMsg(`Request sent to ${t.callsign}`);
+                          setFriendCodeInput('');
+                        } catch (err) {
+                          setFriendMsg(err?.message || 'Failed');
+                        } finally {
+                          setFriendBusy(false);
+                        }
+                      }}
+                    >
+                      {friendBusy ? 'Sending…' : 'Send Request'}
+                    </button>
+                    {friendMsg && <p className="hub-invite-hint">{friendMsg}</p>}
+
+                    {social.pendingIncoming?.length > 0 && (
+                      <>
+                        <p className="coop-section-label">Incoming</p>
+                        <ul className="hub-squad-list">
+                          {social.pendingIncoming.map((f) => (
+                            <li key={f.friendshipId}>
+                              {f.callsign}
+                              <div className="hub-invite-actions" style={{ marginTop: 6 }}>
+                                <button
+                                  type="button"
+                                  className="menu-btn"
+                                  onClick={() => social.acceptFriend(f.friendshipId)}
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  type="button"
+                                  className="menu-btn menu-btn--ghost"
+                                  onClick={() => social.declineFriend(f.friendshipId)}
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+
+                    <p className="coop-section-label">Squad mates</p>
+                    <ul className="hub-squad-list">
+                      {(social.friends || []).length === 0 && (
+                        <li className="is-empty">No friends yet — share your code.</li>
+                      )}
+                      {(social.friends || []).map((f) => (
+                        <li key={f.id}>
+                          {f.callsign}
+                          <span className="hub-browser-meta"> · {f.friendCode}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <p className="coop-section-label">Friend lobbies</p>
+                    <ul className="hub-browser-list">
+                      {(social.lobbies || [])
+                        .filter((r) => r.isFriend)
+                        .map((row) => (
+                          <li key={row.id}>
+                            <div className="hub-browser-row">
+                              <div>
+                                <span className="hub-browser-host">{row.hostCallsign}</span>
+                                <span className="hub-browser-meta">
+                                  {mapLabel(row.map_id)} · {row.player_count}/{row.max_players}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                className="menu-btn"
+                                disabled={squadBusy}
+                                onClick={() => onJoinSquad(row.room_code)}
+                              >
+                                Join
+                              </button>
+                            </div>
+                          </li>
+                        ))}
+                      {(social.lobbies || []).filter((r) => r.isFriend).length === 0 && (
+                        <li className="is-empty">No friends hosting right now.</li>
+                      )}
+                    </ul>
+                  </>
+                )}
+              </div>
             )}
 
             {inLobby && (
@@ -312,6 +579,35 @@ function CampHUD({
                     </li>
                   ))}
                 </ul>
+                {isHost && social.available && social.friends?.length > 0 && (
+                  <>
+                    <p className="coop-section-label">Invite friend</p>
+                    <ul className="hub-squad-list">
+                      {social.friends.map((f) => (
+                        <li key={f.id}>
+                          {f.callsign}
+                          <button
+                            type="button"
+                            className="menu-btn menu-btn--ghost"
+                            style={{ marginLeft: 8, padding: '0.25rem 0.5rem' }}
+                            onClick={async () => {
+                              try {
+                                await social.inviteFriendToLobby(f.id, roomCode, mapId);
+                                play('menuClick');
+                                setCopied('invited');
+                                setTimeout(() => setCopied(''), 1500);
+                              } catch (err) {
+                                console.warn(err);
+                              }
+                            }}
+                          >
+                            {copied === 'invited' ? 'Sent' : 'Invite'}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
                 <p className="hub-invite-hint">
                   Invite link drops friends into this camp — walk the yard together, then Start Match.
                 </p>
@@ -451,6 +747,8 @@ function HubShellInner({
   const autoJoinTried = useRef(false);
 
   useEffect(() => {
+    // Don't clobber combat map if Start Match already flipped phase
+    if (phase === 'playing') return;
     enterHubMap();
     refreshCamp?.();
     stopMenuAmbience();
@@ -466,12 +764,19 @@ function HubShellInner({
       stateRef.current.status = 'playing';
       stateRef.current.mapId = map.id;
     }
-  }, [refreshCamp, stateRef]);
+  }, [refreshCamp, stateRef, phase]);
 
   // Invite link / Play Setup co-op → auto-host or auto-join into this camp
   useEffect(() => {
     if (autoJoinTried.current) return;
     const fromProp = normalizeRoomCode(joinCodeProp);
+    if (joinIntent === 'browser' || joinIntent === 'friends') {
+      autoJoinTried.current = true;
+      setDeployMode(joinIntent);
+      setDeployOpen(true);
+      onJoinConsumed?.();
+      return;
+    }
     const wantHost = joinIntent === 'host' && !fromProp;
     const wantJoin = joinIntent === 'join' || !!fromProp;
 
@@ -742,8 +1047,8 @@ function HubShellInner({
     (id) => {
       unlockAudio();
       play('menuClick');
-      // Pass id explicitly — React setMap state is async and was stomping with stale 'camp'
-      setMap(id, { applyWorld: false });
+      // Stash + apply combat map NOW — HubShell must not be able to revert to hub
+      setMap(id, { applyWorld: true });
       startGame(id);
     },
     [setMap, startGame]
@@ -822,8 +1127,15 @@ export default function HubShell({
   joinIntent = null,
   onJoinConsumed,
 }) {
-  // Ensure hub map is active before GameProvider snapshots spawn/rooms
-  enterHubMap();
+  // Once per mount, BEFORE GameProvider snapshots spawn/rooms. A bare
+  // enterHubMap() in render re-ran after Start Match (phase=playing while
+  // HubShell still mounted) and stomped the combat map → black → camp hub.
+  const hubBooted = useRef(false);
+  if (!hubBooted.current) {
+    enterHubMap();
+    hubBooted.current = true;
+  }
+
   return (
     <GameProvider running bonuses={bonuses}>
       <HubShellInner

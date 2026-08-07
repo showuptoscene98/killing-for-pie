@@ -335,6 +335,13 @@ const farm = {
     { type: 'crate', position: [2, 0.42, 14.5], color: 'wood' },
     { type: 'scarecrow', position: [-5.5, 0, 12.2], yaw: -Math.PI / 5 },
     { type: 'rubble', position: [1.5, 0, 12] },
+    { type: 'streetLamp', position: [-5, 0, -11] },
+    { type: 'streetLamp', position: [5, 0, -11] },
+    { type: 'streetLamp', position: [-10, 0, 6] },
+    { type: 'streetLamp', position: [10, 0, 6] },
+    { type: 'crate', position: [0, 0.42, -10], color: 'wood' },
+    { type: 'ammoCrate', position: [-3, 0, -7], yaw: 0.3 },
+    { type: 'hayBale', position: [6.5, 0, -5], yaw: 0.2 },
   ],
 };
 

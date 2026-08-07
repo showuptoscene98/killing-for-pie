@@ -346,6 +346,12 @@ const sofia = {
     { type: 'crate', position: [3.2, 0.42, 14], color: 'wood' },
     { type: 'rubble', position: [2, 0, 12.5] },
     { type: 'cone', position: [-2, 0, 11.5] },
+    { type: 'streetLamp', position: [0, 0, -9] },
+    { type: 'streetLamp', position: [-8, 0, 1] },
+    { type: 'streetLamp', position: [8, 0, 8] },
+    { type: 'crate', position: [-2.5, 0.42, -11], color: 'wood' },
+    { type: 'ammoCrate', position: [6.5, 0, -5], yaw: 0.4 },
+    { type: 'dumpster', position: [12.5, 0, 2], yaw: -0.3 },
   ],
 };
 

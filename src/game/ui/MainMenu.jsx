@@ -11,6 +11,7 @@ import MenuBackdrop from './MenuBackdrop';
 import CharacterCustomize from './CharacterCustomize';
 import MenuMuteButton from './MenuMuteButton';
 import SettingsPanel, { SettingsButton } from './SettingsPanel';
+import NotificationBell from './NotificationBell';
 import {
   getKeybinds,
   formatKeyCode,
@@ -166,6 +167,13 @@ export default function MainMenu({ onPlay, onCamp, onPlaySetup }) {
         {customize && <CharacterCustomize />}
       </div>
       <div className="menu-corner-btns">
+        <NotificationBell
+          onJoinLobby={(code) => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('coop', String(code).toUpperCase());
+            window.location.assign(url.toString());
+          }}
+        />
         <SettingsButton onClick={() => setSettingsOpen(true)} />
         <MenuMuteButton />
       </div>

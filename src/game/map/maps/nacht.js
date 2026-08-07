@@ -58,19 +58,19 @@ const WALLS = [
   { x: 9, z: 4.925, w: T, d: 4.15, y: F2, h: WALL_H },
 
   // ── Interior dividers (ground) ────────────────────────────────
-  // Spawn | West: x=-5, door gap z∈(-6.8,-4.2) around -5.5
-  { x: -5, z: -8.9, w: T, d: 4.2, y: 0, h: STORY }, // -11 → -6.8
-  { x: -5, z: -1.0, w: T, d: 6.4, y: 0, h: STORY }, // -4.2 → 2.2
+  // Spawn | West: x=-5, door gap z∈(-7.05,-3.95) ≈3.1 around -5.5
+  { x: -5, z: -9.025, w: T, d: 3.95, y: 0, h: STORY }, // -11 → -7.05
+  { x: -5, z: -0.875, w: T, d: 6.15, y: 0, h: STORY }, // -3.95 → 2.2
   { x: -5, z: 4.6, w: T, d: 4.8, y: 0, h: STORY }, // 2.2 → 7
 
   // Spawn | East: x=5
-  { x: 5, z: -8.9, w: T, d: 4.2, y: 0, h: STORY },
-  { x: 5, z: -1.0, w: T, d: 6.4, y: 0, h: STORY },
+  { x: 5, z: -9.025, w: T, d: 3.95, y: 0, h: STORY },
+  { x: 5, z: -0.875, w: T, d: 6.15, y: 0, h: STORY },
   { x: 5, z: 4.6, w: T, d: 4.8, y: 0, h: STORY },
 
-  // Spawn north stub walls flanking stairs (z=-1), gap x∈(-1.7,1.7)
-  { x: -3.35, z: -1, w: 3.3, d: T, y: 0, h: STORY }, // -5 → -1.7
-  { x: 3.35, z: -1, w: 3.3, d: T, y: 0, h: STORY }, // 1.7 → 5
+  // Spawn north stub walls flanking stairs (z=-1), gap x∈(-2.0,2.0)
+  { x: -3.5, z: -1, w: 3.0, d: T, y: 0, h: STORY }, // -5 → -2.0
+  { x: 3.5, z: -1, w: 3.0, d: T, y: 0, h: STORY }, // 2.0 → 5
 
   // West help back wall bits
   { x: -7, z: 2, w: 4.0, d: T, y: 0, h: STORY },
@@ -93,8 +93,8 @@ const DOORS = [
   {
     id: 'door_west',
     position: [-5, WALL_H / 2, -5.5],
-    size: [2.5, WALL_H - 0.12, T + 0.12],
-    collider: { w: T + 0.22, d: 2.55 },
+    size: [3.05, WALL_H - 0.12, T + 0.18],
+    collider: { w: T + 0.35, d: 3.1 },
     cost: 750,
     unlocks: ['west'],
     rotation: [0, Math.PI / 2, 0],
@@ -102,8 +102,8 @@ const DOORS = [
   {
     id: 'door_east',
     position: [5, WALL_H / 2, -5.5],
-    size: [2.5, WALL_H - 0.12, T + 0.12],
-    collider: { w: T + 0.22, d: 2.55 },
+    size: [3.05, WALL_H - 0.12, T + 0.18],
+    collider: { w: T + 0.35, d: 3.1 },
     cost: 1000,
     unlocks: ['east'],
     rotation: [0, Math.PI / 2, 0],
@@ -413,6 +413,14 @@ const nacht = {
     { type: 'ammoCrate', position: [-6, F2, 4], yaw: 0.4 },
     { type: 'rubble', position: [3, F2, -3] },
     { type: 'sandbags', position: [1.5, F2, 3], count: 2 },
+    // Interior clutter + hanging bulbs
+    { type: 'ammoCrate', position: [0.8, 0, -9.2], yaw: 0.2 },
+    { type: 'crate', position: [-7.5, 0.42, 0.5], color: 'wood' },
+    { type: 'crate', position: [7.2, 0.42, -5.5], color: 'plankDark' },
+    { type: 'hangingBulb', position: [0, 3.15, -7] },
+    { type: 'hangingBulb', position: [-7, 3.15, -2], intensity: 0.9 },
+    { type: 'hangingBulb', position: [7, 3.15, -2], intensity: 0.9 },
+    { type: 'hangingBulb', position: [0, F2 + 3.0, -5], intensity: 1.0, color: '#e89840' },
   ],
 };
 

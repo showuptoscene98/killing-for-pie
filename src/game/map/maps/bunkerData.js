@@ -29,24 +29,24 @@ export const WALLS = [
   { x: 14, z: 4.5, w: T, d: 5.25 },
   { x: 14, z: 11.4375, w: T, d: 5.125 },
 
-  // Spawn room (south) — east/west walls, door gaps at z ≈ -2.75
-  { x: -8, z: -9, w: T, d: 10 }, // z -14 → -4
-  { x: 8, z: -9, w: T, d: 10 },
+  // Spawn room (south) — east/west walls, door gaps at z ≈ -2.75 (≈3.2 wide)
+  { x: -8, z: -9.175, w: T, d: 9.65 }, // z -14 → -4.35
+  { x: 8, z: -9.175, w: T, d: 9.65 },
   // Spawn north divider (open hall through center)
   { x: -6, z: -4, w: 4, d: T },
   { x: 6, z: -4, w: 4, d: T },
 
-  // West wing — continues north of door gap (gap z -4 → -1.5)
-  { x: -8, z: 5.5, w: T, d: 14 }, // z -1.5 → 12.5
+  // West wing — continues north of door gap (gap z -4.35 → -1.15)
+  { x: -8, z: 5.675, w: T, d: 13.65 }, // z -1.15 → 12.5
   { x: -11, z: 10, w: 6, d: T },
 
   // East wing
-  { x: 8, z: 5.5, w: T, d: 14 },
+  { x: 8, z: 5.675, w: T, d: 13.65 },
   { x: 11, z: 10, w: 6, d: T },
 
-  // North / command — wall at z=4 with center door gap (2.6 wide → edges ±1.3)
-  { x: -6.15, z: 4, w: 9.7, d: T }, // x -11 → -1.3
-  { x: 6.15, z: 4, w: 9.7, d: T }, // x 1.3 → 11
+  // North / command — wall at z=4 with center door gap (3.4 wide → edges ±1.7)
+  { x: -6.35, z: 4, w: 9.3, d: T }, // x -11 → -1.7
+  { x: 6.35, z: 4, w: 9.3, d: T }, // x 1.7 → 11
 ];
 
 export const ROOMS = {
@@ -65,8 +65,8 @@ export const DOORS = [
   {
     id: 'door_west',
     position: [-8, WALL_HEIGHT / 2, -2.75],
-    size: [2.5, WALL_HEIGHT - 0.15, T + 0.12],
-    collider: { w: T + 0.2, d: 2.55 },
+    size: [3.15, WALL_HEIGHT - 0.15, T + 0.18],
+    collider: { w: T + 0.35, d: 3.2 },
     cost: 750,
     unlocks: ['west'],
     rotation: [0, Math.PI / 2, 0],
@@ -74,8 +74,8 @@ export const DOORS = [
   {
     id: 'door_east',
     position: [8, WALL_HEIGHT / 2, -2.75],
-    size: [2.5, WALL_HEIGHT - 0.15, T + 0.12],
-    collider: { w: T + 0.2, d: 2.55 },
+    size: [3.15, WALL_HEIGHT - 0.15, T + 0.18],
+    collider: { w: T + 0.35, d: 3.2 },
     cost: 1000,
     unlocks: ['east'],
     rotation: [0, Math.PI / 2, 0],
@@ -83,8 +83,8 @@ export const DOORS = [
   {
     id: 'door_north',
     position: [0, WALL_HEIGHT / 2, 4],
-    size: [2.6, WALL_HEIGHT - 0.15, T + 0.12],
-    collider: { w: 2.7, d: T + 0.2 },
+    size: [3.35, WALL_HEIGHT - 0.15, T + 0.18],
+    collider: { w: 3.4, d: T + 0.35 },
     cost: 1250,
     unlocks: ['north'],
     rotation: [0, 0, 0],

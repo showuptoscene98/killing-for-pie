@@ -24,7 +24,12 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install
-      - run: CI=false npm run build
+      - name: Build
+        env:
+          CI: false
+          REACT_APP_SUPABASE_URL: ${{ secrets.REACT_APP_SUPABASE_URL }}
+          REACT_APP_SUPABASE_ANON_KEY: ${{ secrets.REACT_APP_SUPABASE_ANON_KEY }}
+        run: npm run build
       # SPA fallback — GitHub Pages has no Netlify-style redirects
       - run: cp build/index.html build/404.html
       - uses: actions/upload-pages-artifact@v3

@@ -32,17 +32,18 @@ export const DD = {
   accent: '#c44030',
 };
 
-/** 5-step cel gradient — still hard bands, slightly richer form light */
+/** 6-step cel gradient — muted, less candy / childlike */
 let _grad = null;
 export function getToonGradient() {
   if (_grad) return _grad;
-  // shadow → mid-shadow → mid → lit → rim (NearestFilter keeps cel steps)
+  // deeper shadows, restrained midtones, soft rim (still hard NearestFilter bands)
   const stops = [
-    [88, 76, 62],
-    [118, 102, 84],
-    [155, 138, 112],
-    [198, 180, 148],
-    [242, 232, 210],
+    [62, 54, 46],
+    [92, 80, 68],
+    [122, 108, 90],
+    [158, 142, 118],
+    [192, 176, 150],
+    [228, 216, 192],
   ];
   const data = new Uint8Array(stops.length * 4);
   for (let i = 0; i < stops.length; i++) {

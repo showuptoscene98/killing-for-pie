@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import MapWorld from '../map/MapWorld';
-import { getActiveMap } from '../map/activeMap';
+import { getActiveMap, HUB_MAP_ID, enterHubMap } from '../map/activeMap';
 import { HUB_NPCS } from './npcData';
 import NpcMesh from './NpcMesh';
 import HubPlayer from './HubPlayer';
@@ -171,11 +171,14 @@ function HubScene({ onInteract, promptRef, controlsEnabled }) {
   // Sync as soon as we're connecting/lobby so joiners appear in the yard
   const squadLive = phase === 'lobby' || phase === 'connecting';
 
+  // Never render combat Pie Yard inside hub canvas
+  if (getActiveMap()?.id !== HUB_MAP_ID) enterHubMap();
+
   return (
     <>
       <CameraLayerFix />
       <HubLightRig />
-      <MapWorld key={getActiveMap().id} />
+      <MapWorld key={HUB_MAP_ID} />
       <DeployPadMarker />
       {HUB_NPCS.map((npc) => (
         <NpcMesh key={npc.id} npc={npc} />

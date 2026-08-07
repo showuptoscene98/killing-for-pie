@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import './App.css';
 import { CampProvider, useCamp } from './game/camp/CampContext';
 import { CoopProvider, useCoop } from './game/net/CoopContext';
+import { SocialProvider } from './game/net/SocialContext';
 import { GameProvider, useGame } from './game/GameContext';
 import GameCanvas from './game/GameCanvas';
 import HUD from './game/ui/HUD';
@@ -17,6 +18,7 @@ import {
   setActiveMap,
   loadSavedMapId,
   DEFAULT_MAP_ID,
+  HUB_MAP_ID,
   enterHubMap,
 } from './game/map/activeMap';
 import { toggleGameFullscreen } from './game/display';
@@ -230,10 +232,21 @@ function AppRoutes() {
   const [hubKey, setHubKey] = useState(0);
   const [coopMode, setCoopMode] = useState(false);
   const { bonuses, lastRun, clearLastRun } = useCamp();
-  const { phase, pendingJoin, consumePendingJoin, leave, setMap } = useCoop();
+  const {
+    phase,
+    pendingJoin,
+    consumePendingJoin,
+    leave,
+    setMap,
+    mapId: coopMapId,
+  } = useCoop();
   const [joinCode, setJoinCode] = useState('');
-  const [coopIntent, setCoopIntent] = useState(null); // 'host' | 'join' | null
+  const [coopIntent, setCoopIntent] = useState(null); // 'host' | 'join' | 'browser' | 'friends' | null
   const [soloMapId, setSoloMapId] = useState(() => loadSavedMapId() || DEFAULT_MAP_ID);
+
+  // Start Match flips phase before screen — drop hub immediately so HubCanvas
+  // doesn't paint the combat map (or worse, re-enter hub) for a frame.
+  const showHub = screen === 'camp' && phase !== 'playing';
 
   useEffect(() => {
     if (!pendingJoin) return;
@@ -245,15 +258,18 @@ function AppRoutes() {
     setScreen('camp');
   }, [pendingJoin]);
 
-  useEffect(() => {
+  // Layout so screen/session/map settle before paint — avoids black flash + hub stomp
+  useLayoutEffect(() => {
     if (phase !== 'playing') return;
     if (screen === 'playing' && coopMode) return;
+    const mid = coopMapId || loadSavedMapId() || DEFAULT_MAP_ID;
+    if (mid && mid !== HUB_MAP_ID) setActiveMap(mid);
     clearLastRun();
     setCoopMode(true);
     stopMenuAmbience();
     setSession((s) => s + 1);
     setScreen('playing');
-  }, [phase, screen, clearLastRun, coopMode]);
+  }, [phase, screen, clearLastRun, coopMode, coopMapId]);
 
   const start = useCallback(
     (mapOverride) => {
@@ -331,7 +347,7 @@ function AppRoutes() {
           onBack={toCamp}
         />
       )}
-      {screen === 'camp' && (
+      {showHub && (
         <HubShell
           key={hubKey}
           runSummary={lastRun}
@@ -362,9 +378,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <CampProvider>
-      <CoopProvider>
-        <AppRoutes />
-      </CoopProvider>
+      <SocialProvider>
+        <CoopProvider>
+          <AppRoutes />
+        </CoopProvider>
+      </SocialProvider>
     </CampProvider>
   );
 }

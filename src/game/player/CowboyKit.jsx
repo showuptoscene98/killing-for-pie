@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { headAnchor, getBodyStyle } from '../style/BodyParts';
 
 /** Cowboy extras — hat / boots / spurs / revolver (optional spinning cylinder) */
 
@@ -14,7 +15,14 @@ export function usesCowboyKit(o) {
   );
 }
 
-export default function CowboyKit({ o, scale = 1, spinChamber = false, hatY = 1.91 }) {
+export default function CowboyKit({
+  o,
+  scale = 1,
+  spinChamber = false,
+  hatY,
+  headY = 1.52,
+  style,
+}) {
   const chamber = useRef();
   const hat = o.hat || '#3a2818';
   const hatBand = o.hatBand || o.accent || '#c42828';
@@ -28,6 +36,7 @@ export default function CowboyKit({ o, scale = 1, spinChamber = false, hatY = 1.
   const showBoots = !!o.showBoots || o?.id === 'cowboy';
   const showSpurs = !!o.showSpurs || o?.id === 'cowboy';
   const showRevolver = !!o.showRevolver || spinChamber;
+  const hy = hatY ?? headAnchor(headY, style || getBodyStyle()).crownY + 0.09;
 
   useFrame((_, dt) => {
     if (!spinChamber || !chamber.current) return;
@@ -39,19 +48,15 @@ export default function CowboyKit({ o, scale = 1, spinChamber = false, hatY = 1.
   return (
     <group scale={scale}>
       {showHat && (
-        /* Brim ~hatY-0.09 sits on scalp; crown wide enough for head-box corners */
-        <group position={[0, hatY, 0]}>
-          {/* Crown */}
+        <group position={[0, hy, 0]}>
           <mesh castShadow position={[0, 0.02, 0]}>
             <cylinderGeometry args={[0.2, 0.25, 0.26, 16]} />
             <meshStandardMaterial color={hat} roughness={0.9} />
           </mesh>
-          {/* Brim */}
           <mesh position={[0, -0.09, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[0.38, 24]} />
             <meshStandardMaterial color={hat} roughness={0.92} side={2} />
           </mesh>
-          {/* Band */}
           <mesh position={[0, -0.04, 0]}>
             <cylinderGeometry args={[0.255, 0.255, 0.04, 16]} />
             <meshStandardMaterial color={hatBand} roughness={0.7} />
@@ -103,28 +108,23 @@ export default function CowboyKit({ o, scale = 1, spinChamber = false, hatY = 1.
 
       {showRevolver && (
         <group position={[0.42, 0.95, 0.12]} rotation={[0.15, 0.35, 0.4]}>
-          {/* Grip */}
           <mesh position={[0, -0.08, 0]} castShadow>
             <boxGeometry args={[0.05, 0.12, 0.07]} />
             <meshStandardMaterial color={wood} roughness={0.75} />
           </mesh>
-          {/* Frame */}
           <mesh position={[0, 0.02, 0.02]} castShadow>
             <boxGeometry args={[0.055, 0.08, 0.1]} />
             <meshStandardMaterial color={gun} metalness={0.55} roughness={0.35} />
           </mesh>
-          {/* Barrel */}
           <mesh position={[0, 0.04, 0.14]} rotation={[Math.PI / 2, 0, 0]} castShadow>
             <cylinderGeometry args={[0.018, 0.02, 0.18, 8]} />
             <meshStandardMaterial color={metal} metalness={0.65} roughness={0.3} />
           </mesh>
-          {/* Cylinder — spins when spinChamber */}
           <group ref={chamber} position={[0, 0.03, 0.02]}>
             <mesh rotation={[0, 0, Math.PI / 2]}>
               <cylinderGeometry args={[0.035, 0.035, 0.05, 8]} />
               <meshStandardMaterial color={metal} metalness={0.7} roughness={0.28} />
             </mesh>
-            {/* Chamber flutes */}
             {[0, 1, 2, 3, 4, 5].map((i) => {
               const a = (i / 6) * Math.PI * 2;
               return (
@@ -139,7 +139,6 @@ export default function CowboyKit({ o, scale = 1, spinChamber = false, hatY = 1.
               );
             })}
           </group>
-          {/* Hammer */}
           <mesh position={[0, 0.07, -0.02]}>
             <boxGeometry args={[0.03, 0.04, 0.03]} />
             <meshStandardMaterial color={gun} metalness={0.5} roughness={0.4} />

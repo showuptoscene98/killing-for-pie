@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 /**
  * Renderer-facing desktop API.
- * Live game runs from Netlify; LAN coop relay still starts in main for local friends.
+ * Live game runs from GitHub Pages; LAN coop relay still starts in main for local friends.
  */
 contextBridge.exposeInMainWorld('kfpDesktop', {
   isDesktop: true,

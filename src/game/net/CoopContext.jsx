@@ -15,10 +15,14 @@ import {
   readInviteFromUrl,
 } from './roomCode';
 import { DEFAULT_MAP_ID, loadSavedMapId, setActiveMap } from '../map/activeMap';
+import { useSocial } from './SocialContext';
 
 const CoopContext = createContext(null);
 
 export function CoopProvider({ children }) {
+  const social = useSocial();
+  const socialRef = useRef(social);
+  socialRef.current = social;
   const sessionRef = useRef(null);
   const [phase, setPhase] = useState('idle');
   const [role, setRole] = useState(null);
@@ -32,6 +36,13 @@ export function CoopProvider({ children }) {
   const [pendingJoin, setPendingJoin] = useState(() => readInviteFromUrl());
   const [mapId, setMapIdState] = useState(() => loadSavedMapId() || DEFAULT_MAP_ID);
   const [joinAsSpectator, setJoinAsSpectator] = useState(false);
+
+  // Prefer social callsign once loaded
+  useEffect(() => {
+    if (social?.callsign && social.callsign !== 'Survivor') {
+      setLocalName((prev) => (prev === social.callsign ? prev : social.callsign));
+    }
+  }, [social?.callsign]);
 
   const ensureSession = useCallback(() => {
     if (!sessionRef.current) sessionRef.current = new CoopSession();
@@ -50,6 +61,7 @@ export function CoopProvider({ children }) {
         setPhase(payload.status);
         setError(payload.error || '');
         if (payload.status === 'idle') {
+          socialRef.current?.closeLobby?.();
           setRole(null);
           setJoinAddress('');
           setRoomCode('');
@@ -90,8 +102,9 @@ export function CoopProvider({ children }) {
       }
       if (event === 'playerJoined') {
         setPlayers((prev) => {
+          let next;
           if (prev.some((p) => p.id === payload.peerId)) {
-            return prev.map((p) =>
+            next = prev.map((p) =>
               p.id === payload.peerId
                 ? {
                     ...p,
@@ -100,16 +113,21 @@ export function CoopProvider({ children }) {
                   }
                 : p
             );
+          } else {
+            next = [
+              ...prev,
+              {
+                id: payload.peerId,
+                name: payload.name || 'Survivor',
+                isHost: false,
+                spectator: !!payload.spectator,
+              },
+            ];
           }
-          return [
-            ...prev,
-            {
-              id: payload.peerId,
-              name: payload.name || 'Survivor',
-              isHost: false,
-              spectator: !!payload.spectator,
-            },
-          ];
+          if (sessionRef.current?.role === 'host') {
+            socialRef.current?.heartbeatLobby?.({ player_count: next.length });
+          }
+          return next;
         });
       }
       if (event === 'hostLeft') {
@@ -125,7 +143,9 @@ export function CoopProvider({ children }) {
 
   const host = useCallback(
     async (name, mapOverride) => {
-      const n = (name || localName).trim().slice(0, 16) || randomPlayerName();
+      const n =
+        (name || social?.callsign || localName).trim().slice(0, 16) ||
+        randomPlayerName();
       setLocalName(n);
       setRole('host');
       setError('');
@@ -144,6 +164,15 @@ export function CoopProvider({ children }) {
         session.mapId = mid;
         setMapIdState(mid);
         if (session.role === 'host') session.setMap(mid);
+        const code = session.roomCode || '';
+        if (code && social?.publishLobby) {
+          await social.publishLobby({
+            roomCode: code,
+            mapId: mid,
+            playerCount: 1,
+            isPublic: social.listPublic !== false,
+          });
+        }
       } catch (err) {
         setPhase('error');
         const msg = err?.message || 'Failed to host';
@@ -151,7 +180,7 @@ export function CoopProvider({ children }) {
         throw err instanceof Error ? err : new Error(msg);
       }
     },
-    [ensureSession, localName, mapId]
+    [ensureSession, localName, mapId, social]
   );
 
   const hostLan = useCallback(
@@ -175,7 +204,9 @@ export function CoopProvider({ children }) {
 
   const join = useCallback(
     async (address, name) => {
-      const n = (name || localName).trim().slice(0, 16) || randomPlayerName();
+      const n =
+        (name || social?.callsign || localName).trim().slice(0, 16) ||
+        randomPlayerName();
       setLocalName(n);
       setRole('client');
       setError('');
@@ -190,7 +221,7 @@ export function CoopProvider({ children }) {
         throw err instanceof Error ? err : new Error(msg);
       }
     },
-    [ensureSession, localName]
+    [ensureSession, localName, social?.callsign]
   );
 
   const joinLan = useCallback(
@@ -222,8 +253,11 @@ export function CoopProvider({ children }) {
       if (session.role === 'host' && !session.started) {
         session.setMap(id);
       }
+      if (session.role === 'host' && social?.heartbeatLobby) {
+        social.heartbeatLobby({ map_id: id });
+      }
     },
-    [ensureSession]
+    [ensureSession, social]
   );
 
   const startGame = useCallback(
@@ -239,11 +273,13 @@ export function CoopProvider({ children }) {
       setActiveMap(mid);
       session.mapId = mid;
       session.startGame(mid);
+      social?.setLobbyPlaying?.();
     },
-    [ensureSession, mapId]
+    [ensureSession, mapId, social]
   );
 
   const leave = useCallback(() => {
+    social?.closeLobby?.();
     ensureSession().destroy();
     setPhase('idle');
     setRole(null);
@@ -255,7 +291,7 @@ export function CoopProvider({ children }) {
     setError('');
     setJoinAsSpectator(false);
     clearInviteFromUrl();
-  }, [ensureSession]);
+  }, [ensureSession, social]);
 
   const consumePendingJoin = useCallback(() => {
     const code = pendingJoin;

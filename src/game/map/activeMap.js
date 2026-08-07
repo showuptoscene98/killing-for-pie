@@ -18,12 +18,14 @@ export const MAPS = {
 
 /** Combat deploy maps only — hub excluded */
 export const MAP_LIST = [camp, nacht, bunker, sofia, farm, house];
+/** Default combat deploy (Pie Yard) — never the hub */
 export const DEFAULT_MAP_ID = 'camp';
 export const HUB_MAP_ID = 'campHub';
 
 const MAP_KEY = 'kfp_selected_map';
 
-let active = bunker;
+/** Boot on Safehouse so Camp never flashes Pie Yard / factory */
+let active = campHub;
 
 export function getMap(id) {
   return MAPS[id] || bunker;
@@ -56,6 +58,7 @@ export function loadSavedMapId() {
   return DEFAULT_MAP_ID;
 }
 
+/** Apply last combat map (for deploy / PlaySetup). Does not touch hub. */
 export function initActiveMapFromStorage() {
   return setActiveMap(loadSavedMapId());
 }
@@ -63,6 +66,3 @@ export function initActiveMapFromStorage() {
 export function enterHubMap() {
   return setActiveMap(HUB_MAP_ID);
 }
-
-// Boot default from storage
-initActiveMapFromStorage();

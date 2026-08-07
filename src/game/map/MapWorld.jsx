@@ -1299,6 +1299,15 @@ function MapProp({ prop }) {
       return <PanelFlat position={prop.position} yaw={prop.yaw || 0} />;
     case 'streetLamp':
       return <StreetLamp position={prop.position} />;
+    case 'hangingBulb':
+      return (
+        <HangingBulb
+          position={prop.position}
+          intensity={prop.intensity}
+          distance={prop.distance}
+          color={prop.color}
+        />
+      );
     case 'dumpster':
       return <Dumpster position={prop.position} yaw={prop.yaw || 0} />;
     case 'rubble':
@@ -1464,6 +1473,21 @@ function PanelFlat({ position, yaw = 0 }) {
 }
 
 function StreetLamp({ position }) {
+  const light = useRef();
+  const bulb = useRef();
+  const seed = useMemo(() => (position[0] * 12.7 + position[2] * 5.3) % 100, [position]);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    const flicker =
+      0.85 +
+      Math.sin(t * 7.3 + seed) * 0.08 +
+      Math.sin(t * 19.1 + seed * 1.7) * 0.05 +
+      (Math.sin(t * 43 + seed) > 0.92 ? -0.25 : 0);
+    if (light.current) light.current.intensity = Math.max(0.15, flicker * 1.6);
+    if (bulb.current?.material) {
+      bulb.current.material.emissiveIntensity = 0.55 + flicker * 0.7;
+    }
+  });
   return (
     <group position={position}>
       <mesh position={[0, 2.0, 0]} castShadow>
@@ -1474,10 +1498,61 @@ function StreetLamp({ position }) {
         <boxGeometry args={[0.12, 0.12, 0.7]} />
         <Toon color="#3a3a38" />
       </mesh>
-      <mesh position={[0, 3.9, 0.55]}>
+      <mesh ref={bulb} position={[0, 3.9, 0.55]}>
         <boxGeometry args={[0.35, 0.2, 0.35]} />
         <Toon color="#c9a227" emissive="#c9a227" emissiveIntensity={0.9} />
       </mesh>
+      <pointLight
+        ref={light}
+        position={[0, 3.7, 0.55]}
+        intensity={1.4}
+        distance={11}
+        color="#e8c060"
+        decay={1.4}
+      />
+    </group>
+  );
+}
+
+/** Ceiling hanging bulb — indoor flicker special */
+function HangingBulb({ position, intensity = 1.1, distance = 8, color = '#e8a848' }) {
+  const light = useRef();
+  const bulb = useRef();
+  const seed = useMemo(() => (position[0] * 9.1 + position[1] * 3.3 + position[2] * 7.7) % 100, [position]);
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime;
+    const flicker =
+      0.75 +
+      Math.sin(t * 5.6 + seed) * 0.12 +
+      Math.sin(t * 17.4 + seed * 2.1) * 0.08 +
+      (Math.sin(t * 31 + seed * 0.5) > 0.88 ? -0.35 : 0);
+    if (light.current) light.current.intensity = Math.max(0.08, flicker * intensity);
+    if (bulb.current?.material) {
+      bulb.current.material.emissiveIntensity = 0.4 + flicker * 1.1;
+    }
+  });
+  return (
+    <group position={position}>
+      <mesh position={[0, 0.35, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 0.7, 5]} />
+        <Toon color="#2a2420" />
+      </mesh>
+      <mesh position={[0, 0.05, 0]}>
+        <cylinderGeometry args={[0.04, 0.05, 0.08, 8]} />
+        <Toon color="#4a4840" />
+      </mesh>
+      <mesh ref={bulb} position={[0, -0.08, 0]}>
+        <sphereGeometry args={[0.09, 8, 8]} />
+        <Toon color={color} emissive={color} emissiveIntensity={0.9} />
+      </mesh>
+      <pointLight
+        ref={light}
+        position={[0, -0.1, 0]}
+        intensity={intensity}
+        distance={distance}
+        color={color}
+        decay={1.5}
+      />
     </group>
   );
 }

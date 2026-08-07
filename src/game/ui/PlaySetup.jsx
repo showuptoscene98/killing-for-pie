@@ -53,7 +53,14 @@ export default function PlaySetup({ onPlaySolo, onPlayCoop, onBack }) {
     play('menuClick');
     setActiveMap(mapId);
     if (mode === 'coop') {
-      const intent = coopIntent === 'join' ? 'join' : 'host';
+      const intent =
+        coopIntent === 'join'
+          ? 'join'
+          : coopIntent === 'browser'
+            ? 'browser'
+            : coopIntent === 'friends'
+              ? 'friends'
+              : 'host';
       onPlayCoop?.(mapId, {
         intent,
         code: intent === 'join' ? joinCode.trim() : '',
@@ -150,6 +157,28 @@ export default function PlaySetup({ onPlaySolo, onPlayCoop, onBack }) {
               >
                 Join Code
               </button>
+              <button
+                type="button"
+                className={`hub-mode-btn${coopIntent === 'browser' ? ' is-selected' : ''}`}
+                onClick={() => {
+                  unlockAudio();
+                  play('menuHover');
+                  setCoopIntent('browser');
+                }}
+              >
+                Browser
+              </button>
+              <button
+                type="button"
+                className={`hub-mode-btn${coopIntent === 'friends' ? ' is-selected' : ''}`}
+                onClick={() => {
+                  unlockAudio();
+                  play('menuHover');
+                  setCoopIntent('friends');
+                }}
+              >
+                Friends
+              </button>
             </div>
             {coopIntent === 'join' && (
               <label className="hub-join-field" style={{ marginTop: 12 }}>
@@ -163,14 +192,26 @@ export default function PlaySetup({ onPlaySolo, onPlayCoop, onBack }) {
               </label>
             )}
             <p className="menu-sub" style={{ marginTop: 10 }}>
-              Drops you in camp together — walk the yard, then deploy to {selectedMap.name}.
+              {coopIntent === 'browser'
+                ? 'Opens the server browser in camp.'
+                : coopIntent === 'friends'
+                  ? 'Manage friend codes and join friend lobbies from camp.'
+                  : `Drops you in camp together — walk the yard, then deploy to ${selectedMap.name}.`}
             </p>
           </div>
         )}
 
         <p className="coop-map-current">
           {selectedMode.name}
-          {mode === 'coop' ? ` · ${coopIntent === 'join' ? 'Join' : 'Host'}` : ''}
+          {mode === 'coop' ? ` · ${
+            coopIntent === 'join'
+              ? 'Join'
+              : coopIntent === 'browser'
+                ? 'Browser'
+                : coopIntent === 'friends'
+                  ? 'Friends'
+                  : 'Host'
+          }` : ''}
           {' · '}
           {selectedMap.name}
         </p>

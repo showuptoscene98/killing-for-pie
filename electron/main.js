@@ -57,7 +57,7 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      // Needed so Netlify PeerJS / WebGL behave like a normal browser
+      // Needed so PeerJS / WebGL behave like a normal browser
       webSecurity: true,
     },
   });
@@ -119,10 +119,10 @@ function registerIpc() {
 
   ipcMain.handle('steam:isAvailable', () => false);
   ipcMain.handle('steam:createLobby', async () => {
-    throw new Error('Steam Networking not wired yet — use Online co-op on Netlify');
+    throw new Error('Steam Networking not wired yet — use Online co-op on GitHub Pages');
   });
   ipcMain.handle('steam:joinLobby', async () => {
-    throw new Error('Steam Networking not wired yet — use Online co-op on Netlify');
+    throw new Error('Steam Networking not wired yet — use Online co-op on GitHub Pages');
   });
   ipcMain.handle('steam:leaveLobby', async () => ({ ok: true }));
   ipcMain.handle('steam:sendP2P', async () => {
@@ -132,7 +132,7 @@ function registerIpc() {
 
 app.whenReady().then(() => {
   registerIpc();
-  // Packaged app = Netlify + PeerJS online coop (needs internet).
+  // Packaged app = GitHub Pages + PeerJS online coop (needs internet).
   // LAN relay only in unpackaged/dev, or force with KFP_LAN_RELAY=1.
   if (!app.isPackaged || process.env.KFP_LAN_RELAY === '1') {
     startCoopRelay();

@@ -261,7 +261,7 @@ const SPAWN_POINTS = [
 const camp = {
   id: 'camp',
   name: 'Pie Yard',
-  blurb: 'Outside the bunker. Dirt yard, tents, sealed shell.',
+  blurb: 'Combat map — dirt yard + pie factory pad outside the bunker. Not the Safehouse hub.',
   worldBound: 14.5,
   theme: 'camp',
   outdoor: true,
@@ -343,6 +343,13 @@ const camp = {
     { type: 'crate', position: [1.5, 0.42, 12.2], color: 'wood' },
     { type: 'crate', position: [3.5, 0.42, 14], color: 'plankDark' },
     { type: 'rubble', position: [-5, 0, 12] },
+    { type: 'streetLamp', position: [-4, 0, -11] },
+    { type: 'streetLamp', position: [4, 0, -11] },
+    { type: 'streetLamp', position: [-10, 0, 4] },
+    { type: 'streetLamp', position: [10, 0, 4] },
+    { type: 'ammoCrate', position: [0.5, 0, -10.5], yaw: 0.2 },
+    { type: 'crate', position: [-8, 0.42, -3], color: 'wood' },
+    { type: 'sandbags', position: [8.5, 0, -3], count: 2 },
   ],
 };
 

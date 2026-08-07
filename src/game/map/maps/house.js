@@ -32,10 +32,10 @@ function win(partial) {
 
 const WALLS = [
   // ── Outer shell — GROUND ──────────────────────────────────────
-  // SOUTH front z=-6 — door gap ±1.3, window gaps at ±4.2 (WIN_W)
+  // SOUTH front z=-6 — door gap ±1.55, window gaps at ±4.2 (WIN_W)
   { x: -6.5125, z: -6, w: 2.975, d: T, y: 0, h: STORY }, // -8 → -5.025
-  { x: -2.3375, z: -6, w: 2.075, d: T, y: 0, h: STORY }, // -3.375 → -1.3
-  { x: 2.3375, z: -6, w: 2.075, d: T, y: 0, h: STORY }, // 1.3 → 3.375
+  { x: -2.4625, z: -6, w: 1.825, d: T, y: 0, h: STORY }, // -3.375 → -1.55
+  { x: 2.4625, z: -6, w: 1.825, d: T, y: 0, h: STORY }, // 1.55 → 3.375
   { x: 6.5125, z: -6, w: 2.975, d: T, y: 0, h: STORY }, // 5.025 → 8
 
   // NORTH back z=7 — window gaps at x=±4 (WIN_W=1.65 → ±0.825)
@@ -71,27 +71,27 @@ const WALLS = [
   { x: 8, z: 6.1625, w: T, d: 1.675, y: F2, h: WALL_H },
 
   // ── Interior dividers — GROUND ────────────────────────────────
-  // Lobby | Garage x=-3 — door gap centered z=-2.2 (opening 2.5)
-  { x: -3, z: -4.725, w: T, d: 2.55, y: 0, h: STORY }, // -6 → -3.45
-  { x: -3, z: 0.525, w: T, d: 2.95, y: 0, h: STORY }, // -0.95 → 2
+  // Lobby | Garage x=-3 — door gap centered z=-2.2 (opening 3.0)
+  { x: -3, z: -4.85, w: T, d: 2.3, y: 0, h: STORY }, // -6 → -3.7
+  { x: -3, z: 0.65, w: T, d: 2.7, y: 0, h: STORY }, // -0.7 → 2
 
   // Lobby | Living x=3 — door gap z=-2.2
-  { x: 3, z: -4.725, w: T, d: 2.55, y: 0, h: STORY },
-  { x: 3, z: 0.525, w: T, d: 2.95, y: 0, h: STORY },
+  { x: 3, z: -4.85, w: T, d: 2.3, y: 0, h: STORY },
+  { x: 3, z: 0.65, w: T, d: 2.7, y: 0, h: STORY },
 
-  // Lobby | Kitchen/Dining z=2 — door gaps centered ±4.5 (2.5 wide)
-  { x: -6.875, z: 2, w: 2.25, d: T, y: 0, h: STORY }, // -8 → -5.75
-  { x: 0, z: 2, w: 6.5, d: T, y: 0, h: STORY }, // -3.25 → 3.25
-  { x: 6.875, z: 2, w: 2.25, d: T, y: 0, h: STORY }, // 5.75 → 8
+  // Lobby | Kitchen/Dining z=2 — door gaps centered ±4.5 (3.0 wide)
+  { x: -7.0, z: 2, w: 2.0, d: T, y: 0, h: STORY }, // -8 → -6
+  { x: 0, z: 2, w: 6.0, d: T, y: 0, h: STORY }, // -3 → 3
+  { x: 7.0, z: 2, w: 2.0, d: T, y: 0, h: STORY }, // 6 → 8
 
   // Kitchen | Dining x=0 — solid (buy each room separately)
   { x: 0, z: 4.5, w: T, d: 5.0, y: 0, h: STORY }, // 2 → 7
 
   // ── Interior dividers — UPPER (hall south; bedrooms north) ─
   // Same door gaps as ground (±4.5) — center stays solid (stairs exit south into hall)
-  { x: -6.875, z: 2, w: 2.25, d: T, y: F2, h: WALL_H },
-  { x: 0, z: 2, w: 6.5, d: T, y: F2, h: WALL_H },
-  { x: 6.875, z: 2, w: 2.25, d: T, y: F2, h: WALL_H },
+  { x: -7.0, z: 2, w: 2.0, d: T, y: F2, h: WALL_H },
+  { x: 0, z: 2, w: 6.0, d: T, y: F2, h: WALL_H },
+  { x: 7.0, z: 2, w: 2.0, d: T, y: F2, h: WALL_H },
 
   // Kids | Master x=0 upstairs north — solid
   { x: 0, z: 4.5, w: T, d: 5.0, y: F2, h: WALL_H },
@@ -117,8 +117,8 @@ const DOORS = [
   {
     id: 'door_front',
     position: [0, DOOR_H / 2, -6],
-    size: [2.55, DOOR_H, T + 0.14],
-    collider: { w: 2.6, d: T + 0.28 },
+    size: [3.05, DOOR_H, T + 0.2],
+    collider: { w: 3.1, d: T + 0.4 },
     cost: 750,
     unlocks: ['lobby'],
     rotation: [0, 0, 0],
@@ -126,8 +126,8 @@ const DOORS = [
   {
     id: 'door_garage',
     position: [-3, DOOR_H / 2, -2.2],
-    size: [2.4, DOOR_H, T + 0.14],
-    collider: { w: T + 0.28, d: 2.45 },
+    size: [2.95, DOOR_H, T + 0.2],
+    collider: { w: T + 0.4, d: 3.0 },
     cost: 1000,
     unlocks: ['garage'],
     rotation: [0, Math.PI / 2, 0],
@@ -135,8 +135,8 @@ const DOORS = [
   {
     id: 'door_living',
     position: [3, DOOR_H / 2, -2.2],
-    size: [2.4, DOOR_H, T + 0.14],
-    collider: { w: T + 0.28, d: 2.45 },
+    size: [2.95, DOOR_H, T + 0.2],
+    collider: { w: T + 0.4, d: 3.0 },
     cost: 1000,
     unlocks: ['living'],
     rotation: [0, Math.PI / 2, 0],
@@ -144,8 +144,8 @@ const DOORS = [
   {
     id: 'door_kitchen',
     position: [-4.5, DOOR_H / 2, 2],
-    size: [2.4, DOOR_H, T + 0.14],
-    collider: { w: 2.45, d: T + 0.28 },
+    size: [2.95, DOOR_H, T + 0.2],
+    collider: { w: 3.0, d: T + 0.4 },
     cost: 1250,
     unlocks: ['kitchen'],
     rotation: [0, 0, 0],
@@ -153,8 +153,8 @@ const DOORS = [
   {
     id: 'door_dining',
     position: [4.5, DOOR_H / 2, 2],
-    size: [2.4, DOOR_H, T + 0.14],
-    collider: { w: 2.45, d: T + 0.28 },
+    size: [2.95, DOOR_H, T + 0.2],
+    collider: { w: 3.0, d: T + 0.4 },
     cost: 1250,
     unlocks: ['dining'],
     rotation: [0, 0, 0],
@@ -162,8 +162,8 @@ const DOORS = [
   {
     id: 'door_kids',
     position: [-4.5, F2 + DOOR_H / 2, 2],
-    size: [2.4, DOOR_H, T + 0.14],
-    collider: { w: 2.45, d: T + 0.28 },
+    size: [2.95, DOOR_H, T + 0.2],
+    collider: { w: 3.0, d: T + 0.4 },
     cost: 1500,
     unlocks: ['kids'],
     rotation: [0, 0, 0],
@@ -171,8 +171,8 @@ const DOORS = [
   {
     id: 'door_master',
     position: [4.5, F2 + DOOR_H / 2, 2],
-    size: [2.4, DOOR_H, T + 0.14],
-    collider: { w: 2.45, d: T + 0.28 },
+    size: [2.95, DOOR_H, T + 0.2],
+    collider: { w: 3.0, d: T + 0.4 },
     cost: 1500,
     unlocks: ['master'],
     rotation: [0, 0, 0],
@@ -540,6 +540,16 @@ const house = {
     { type: 'crate', position: [5.8, F2 + 0.42, -4], color: 'wood' },
     { type: 'crate', position: [5.8, F2 + 1.27, -4], color: 'plankDark' },
     { type: 'rubble', position: [1.2, F2, -4.2] },
+    // More clutter + lights
+    { type: 'ammoCrate', position: [-1.5, 0, -5], yaw: -0.3 },
+    { type: 'crate', position: [1.8, 0.42, 5.5], color: 'wood' },
+    { type: 'rubble', position: [-1.2, 0, 0.8] },
+    { type: 'streetLamp', position: [-3.5, 0, -10.5] },
+    { type: 'streetLamp', position: [3.5, 0, -10.5] },
+    { type: 'hangingBulb', position: [0, 3.2, -3], intensity: 1.0 },
+    { type: 'hangingBulb', position: [-5.5, 3.1, -2], intensity: 0.85 },
+    { type: 'hangingBulb', position: [5.5, 3.1, -2], intensity: 0.85 },
+    { type: 'hangingBulb', position: [0, F2 + 3.0, -3], intensity: 0.95, color: '#e8b868' },
   ],
 };
 

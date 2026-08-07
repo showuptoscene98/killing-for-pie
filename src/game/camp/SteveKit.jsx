@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { DD } from '../style/theme';
 import Toon from '../style/Toon';
+import { headAnchor, getBodyStyle } from '../style/BodyParts';
 
 /** Steve — fishnets + rice farmer hat + Apple the dog */
 
@@ -169,19 +170,17 @@ function AppleDog({ offset = [0.55, 0, 0.15] }) {
   );
 }
 
-export default function SteveKit() {
+export default function SteveKit({ headY = 1.65, style }) {
   const net = '#0a0a0c';
   const skin = '#c49a6c';
+  const hatY = headAnchor(headY, style || getBodyStyle()).crownY + 0.07;
 
   return (
     <group>
-      {/* Fishnet legs over base pants — replace look with mesh straps */}
       <FishnetSleeve position={[-0.12, 0.45, 0]} args={[0.19, 0.92, 0.21]} />
       <FishnetSleeve position={[0.12, 0.45, 0]} args={[0.19, 0.92, 0.21]} />
-      {/* Fishnet arms */}
       <FishnetSleeve position={[-0.38, 1.1, 0]} args={[0.15, 0.56, 0.15]} />
       <FishnetSleeve position={[0.38, 1.1, 0]} args={[0.15, 0.56, 0.15]} />
-      {/* Crop / fishnet torso panel */}
       <mesh position={[0, 1.05, 0.17]}>
         <boxGeometry args={[0.5, 0.35, 0.04]} />
         <meshStandardMaterial color={skin} transparent opacity={0.7} roughness={0.65} />
@@ -202,14 +201,13 @@ export default function SteveKit() {
           <meshStandardMaterial color={net} roughness={0.45} />
         </mesh>
       ))}
-      {/* Horizontal net lines on chest */}
       {[1.18, 1.08, 0.98, 0.88].map((y, i) => (
         <mesh key={`ch${i}`} position={[0, y, 0.185]}>
           <boxGeometry args={[0.48, 0.015, 0.015]} />
           <meshStandardMaterial color={net} roughness={0.45} />
         </mesh>
       ))}
-      <RiceFarmerHat />
+      <RiceFarmerHat position={[0, hatY, 0]} />
       <AppleDog />
     </group>
   );

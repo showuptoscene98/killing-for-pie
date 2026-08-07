@@ -1,6 +1,12 @@
 import { POINTS, PLAYER, ROUND } from '../constants';
 import { WEAPONS, createWeaponLoadout } from '../weapons/weaponDefs';
-import { getActiveMap } from '../map/activeMap';
+import {
+  DEFAULT_MAP_ID,
+  getActiveMap,
+  getMap,
+  loadSavedMapId,
+  setActiveMap,
+} from '../map/activeMap';
 import { initWindowState } from './WindowSystem';
 import { createMysteryBoxState } from './MysteryBoxSystem';
 import { createPowerupState } from './PowerupSystem';
@@ -12,7 +18,14 @@ const DEFAULT_BONUSES = {
 };
 
 export function createInitialGameState(bonuses = DEFAULT_BONUSES) {
-  const map = getActiveMap();
+  let map = getActiveMap();
+  // Never boot a combat session on the hub yard (coop Start Match race used to)
+  if (map?.hub) {
+    const mid = loadSavedMapId() || DEFAULT_MAP_ID;
+    // Never use hub id for combat — Pie Yard / saved combat only
+    map = getMap(mid === 'campHub' ? DEFAULT_MAP_ID : mid);
+    setActiveMap(map.id);
+  }
   const rooms = {};
   Object.keys(map.ROOMS).forEach((id) => {
     rooms[id] = { ...map.ROOMS[id] };

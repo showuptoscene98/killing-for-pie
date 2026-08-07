@@ -2,7 +2,7 @@
   "name": "killing-for-pie",
   "version": "0.1.0",
   "private": true,
-  "description": "Killing for Pie! desktop shell (loads Netlify)",
+  "description": "Killing for Pie! desktop shell (loads GitHub Pages)",
   "author": "Killing for Pie",
   "main": "main.js",
   "scripts": {

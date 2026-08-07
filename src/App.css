@@ -2420,3 +2420,183 @@
 .bj-actions .hub-deploy-modes {
   margin-bottom: 0.5rem;
 }
+
+/* Social — browser / friends / notifications */
+.hub-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.5rem 0 0.85rem;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(232, 226, 212, 0.7);
+  cursor: pointer;
+}
+
+.hub-toggle-row input {
+  accent-color: #8a6a28;
+}
+
+.hub-browser-list,
+.hub-friends .hub-browser-list {
+  list-style: none;
+  margin: 0.5rem 0 0.75rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 240px;
+  overflow: auto;
+}
+
+.hub-browser-list li {
+  border: 1px solid rgba(232, 226, 212, 0.15);
+  padding: 0.55rem 0.65rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.hub-browser-list li.is-empty {
+  color: rgba(232, 226, 212, 0.4);
+  border-style: dashed;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.hub-browser-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.hub-browser-host {
+  display: block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: #e8e2d4;
+}
+
+.hub-browser-meta {
+  display: block;
+  font-family: 'IM Fell English', 'Times New Roman', serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: rgba(196, 180, 138, 0.75);
+  margin-top: 0.15rem;
+}
+
+.hub-browser-row .menu-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.72rem;
+}
+
+.notif-bell {
+  position: relative;
+}
+
+.notif-bell-btn {
+  position: relative;
+}
+
+.notif-bell-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.25rem;
+  border-radius: 0;
+  background: #9a3020;
+  color: #f0ebe0;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  line-height: 1.1rem;
+  text-align: center;
+  border: 1px solid rgba(232, 226, 212, 0.35);
+}
+
+.notif-dropdown {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 50;
+  width: min(340px, 88vw);
+  max-height: 70vh;
+  overflow: auto;
+  padding: 1rem 1.1rem;
+  pointer-events: auto;
+}
+
+.menu-corner-btns .notif-dropdown {
+  right: 0;
+}
+
+.notif-dropdown-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.notif-dropdown-head h3 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #f0ebe0;
+  letter-spacing: 0.04em;
+}
+
+.notif-dismiss-all {
+  padding: 0.3rem 0.55rem !important;
+  font-size: 0.65rem !important;
+}
+
+.notif-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.notif-item {
+  padding: 0.55rem 0.6rem;
+  border: 1px solid rgba(138, 106, 40, 0.35);
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.notif-item-text {
+  margin: 0 0 0.45rem;
+  font-family: 'IM Fell English', Georgia, serif;
+  font-size: 0.88rem;
+  color: #c4b48a;
+  line-height: 1.35;
+}
+
+.notif-item-text strong {
+  color: #d4c4a0;
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+}
+
+.notif-item-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.notif-item-actions .menu-btn {
+  flex: 1;
+  min-width: 4.5rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.68rem;
+}
+

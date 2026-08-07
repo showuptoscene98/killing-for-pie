@@ -1,6 +1,7 @@
 /** Long hair / silhouette bits for female outfit gender */
 
 import Toon from '../style/Toon';
+import { BodyPart, getBodyStyle } from '../style/BodyParts';
 
 const HAIR = {
   default: '#3a2a1c',
@@ -49,68 +50,99 @@ export function applyGenderLook(o, gender = 'male') {
 }
 
 /** Ponytail / side locks — skip under hazmat hood */
-export default function FemaleHair({ o, y = 1.55 }) {
+export default function FemaleHair({ o, y = 1.55, style }) {
   const color = hairColorForOutfit(o);
   if (!color) return null;
+  const mode = style || getBodyStyle();
 
   return (
     <group>
-      <mesh position={[0, y - 0.12, -0.12]} castShadow>
-        <capsuleGeometry args={[0.07, 0.32, 5, 10]} />
-        <Toon color={color} />
-      </mesh>
-      <mesh position={[0.18, y - 0.1, 0.02]} rotation={[0.15, 0, 0.25]} castShadow>
-        <capsuleGeometry args={[0.035, 0.2, 4, 8]} />
-        <Toon color={color} />
-      </mesh>
-      <mesh position={[-0.18, y - 0.1, 0.02]} rotation={[0.15, 0, -0.25]} castShadow>
-        <capsuleGeometry args={[0.035, 0.2, 4, 8]} />
-        <Toon color={color} />
-      </mesh>
-      <mesh position={[0, y + 0.1, -0.02]} castShadow>
-        <capsuleGeometry args={[0.14, 0.04, 4, 10]} />
-        <Toon color={color} />
-      </mesh>
+      <BodyPart
+        position={[0, y - 0.12, -0.12]}
+        args={[0.14, 0.36, 0.14]}
+        style={mode}
+        castShadow
+        matProps={{ color }}
+      />
+      <BodyPart
+        position={[0.18, y - 0.1, 0.02]}
+        rotation={[0.15, 0, 0.25]}
+        args={[0.07, 0.24, 0.07]}
+        style={mode}
+        castShadow
+        matProps={{ color }}
+      />
+      <BodyPart
+        position={[-0.18, y - 0.1, 0.02]}
+        rotation={[0.15, 0, -0.25]}
+        args={[0.07, 0.24, 0.07]}
+        style={mode}
+        castShadow
+        matProps={{ color }}
+      />
+      <BodyPart
+        position={[0, y + 0.1, -0.02]}
+        args={[0.28, 0.1, 0.22]}
+        style={mode}
+        castShadow
+        matProps={{ color }}
+      />
     </group>
   );
 }
 
-/** Soft sausage bust — short capsules, not balls. */
-export function FemaleChest({ color = '#f5f2ea', y = 1.18, Material = Toon }) {
+/** Soft bust — boxes in block mode, short capsules in lowpoly. */
+export function FemaleChest({ color = '#f5f2ea', y = 1.18, Material = Toon, style }) {
+  const mode = style || getBodyStyle();
   const matProps =
     Material === 'meshStandardMaterial'
       ? { color, roughness: 0.72 }
       : { color };
 
+  if (mode === 'lowpoly') {
+    return (
+      <group>
+        <mesh position={[-0.1, y, 0.14]} rotation={[0.9, 0, -0.2]} castShadow>
+          <capsuleGeometry args={[0.08, 0.06, 5, 10]} />
+          <Material {...matProps} />
+        </mesh>
+        <mesh position={[0.1, y, 0.14]} rotation={[0.9, 0, 0.2]} castShadow>
+          <capsuleGeometry args={[0.08, 0.06, 5, 10]} />
+          <Material {...matProps} />
+        </mesh>
+      </group>
+    );
+  }
+
   return (
     <group>
-      <mesh position={[-0.1, y, 0.14]} rotation={[0.9, 0, -0.2]} castShadow>
-        <capsuleGeometry args={[0.08, 0.06, 5, 10]} />
+      <mesh position={[-0.1, y, 0.14]} castShadow>
+        <boxGeometry args={[0.14, 0.12, 0.12]} />
         <Material {...matProps} />
       </mesh>
-      <mesh position={[0.1, y, 0.14]} rotation={[0.9, 0, 0.2]} castShadow>
-        <capsuleGeometry args={[0.08, 0.06, 5, 10]} />
+      <mesh position={[0.1, y, 0.14]} castShadow>
+        <boxGeometry args={[0.14, 0.12, 0.12]} />
         <Material {...matProps} />
       </mesh>
     </group>
   );
 }
 
-/** Target extents for sausage capsules [width, height, depth] */
+/** Target extents [width, height, depth] */
 export function bodyDims(gender) {
   const female = gender === 'female';
   return {
     female,
-    torso: female ? [0.34, 0.74, 0.28] : [0.36, 0.78, 0.3],
+    torso: female ? [0.48, 0.7, 0.28] : [0.52, 0.72, 0.3],
     torsoY: female ? 1.04 : 1.05,
     chestY: female ? 1.18 : null,
-    leg: female ? [0.12, 0.7, 0.12] : [0.14, 0.72, 0.14],
-    legX: female ? 0.12 : 0.11,
-    arm: female ? [0.09, 0.52, 0.09] : [0.1, 0.55, 0.1],
-    armX: female ? 0.3 : 0.32,
-    head: female ? [0.24, 0.36, 0.24] : [0.26, 0.38, 0.26],
+    leg: female ? [0.16, 0.68, 0.18] : [0.18, 0.7, 0.2],
+    legX: female ? 0.12 : 0.12,
+    arm: female ? [0.12, 0.48, 0.12] : [0.13, 0.5, 0.13],
+    armX: female ? 0.34 : 0.36,
+    head: female ? [0.3, 0.3, 0.3] : [0.32, 0.32, 0.32],
     headY: female ? 1.52 : 1.55,
-    hip: female ? [0.36, 0.18, 0.26] : null,
+    hip: female ? [0.42, 0.18, 0.26] : null,
     hipY: 0.72,
   };
 }

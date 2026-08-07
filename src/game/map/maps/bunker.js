@@ -48,6 +48,15 @@ const bunker = {
     { type: 'rubble', position: [0, 0, 7] },
     { type: 'dumpster', position: [-11.5, 0, -2], yaw: Math.PI / 2 },
     { type: 'rubble', position: [3, 0, 10] },
+    { type: 'ammoCrate', position: [-2.5, 0, -10], yaw: 0.25 },
+    { type: 'crate', position: [-10.5, 0.42, 1.5], color: 'wood' },
+    { type: 'crate', position: [10.5, 0.42, 1.5], color: 'plankDark' },
+    { type: 'crate', position: [4.2, 0.42, 8], color: 'wood' },
+    { type: 'sandbags', position: [0, 0, 5.5], count: 2 },
+    { type: 'hangingBulb', position: [0, 3.4, -9], intensity: 1.2 },
+    { type: 'hangingBulb', position: [-10, 3.4, 2], intensity: 0.85 },
+    { type: 'hangingBulb', position: [10, 3.4, 2], intensity: 0.85 },
+    { type: 'hangingBulb', position: [0, 3.4, 9], intensity: 1.0, color: '#c85828' },
   ],
 };
 

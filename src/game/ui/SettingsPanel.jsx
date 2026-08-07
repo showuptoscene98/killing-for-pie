@@ -10,6 +10,8 @@ import {
   setVolume,
   getLookSensMultiplier,
   setLookSensMultiplier,
+  getBodyStyle,
+  setBodyStyle,
   subscribeSettings,
 } from '../settings';
 import {
@@ -28,17 +30,27 @@ import {
   subscribeKeybinds,
 } from '../keybinds';
 import { useCamp } from '../camp/CampContext';
+import { useSocial } from '../net/SocialContext';
+import { useCoop } from '../net/CoopContext';
 
 export default function SettingsPanel({ open, onClose }) {
   const { camp, wipeProgress, refreshCamp } = useCamp();
+  const social = useSocial();
+  const { setLocalName } = useCoop();
   const [volume, setVol] = useState(() => getVolume());
   const [sens, setSens] = useState(() => getLookSensMultiplier());
   const [muted, setMuted] = useState(() => isSoundMuted());
+  const [bodyStyle, setBodyStyleUi] = useState(() => getBodyStyle());
   const [binds, setBinds] = useState(() => getKeybinds());
   const [listening, setListening] = useState(null); // action id or null
   const [bindError, setBindError] = useState('');
   const [fs, setFs] = useState(() => isFullscreen());
   const [confirmWipe, setConfirmWipe] = useState(false);
+  const [callsignDraft, setCallsignDraft] = useState('');
+
+  useEffect(() => {
+    if (open && social?.callsign) setCallsignDraft(social.callsign);
+  }, [open, social?.callsign]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -46,6 +58,7 @@ export default function SettingsPanel({ open, onClose }) {
       setVol(s.volume);
       setSens(s.lookSens);
       setMuted(s.muted);
+      if (s.bodyStyle) setBodyStyleUi(s.bodyStyle);
     });
   }, [open]);
 
@@ -173,6 +186,61 @@ export default function SettingsPanel({ open, onClose }) {
         aria-label="Settings"
       >
         <h2 className="settings-title">Settings</h2>
+
+        <div className="settings-section">
+          <div className="settings-section-head">
+            <h3 className="settings-section-title">Character style</h3>
+          </div>
+          <p className="settings-hint">
+            Block = soft boxes. Low-poly = sausage capsules. Applies to zombies, NPCs,
+            and remotes.
+          </p>
+          <div className="hub-deploy-modes" style={{ marginTop: 8 }}>
+            {[
+              { id: 'block', label: 'Block' },
+              { id: 'lowpoly', label: 'Low-poly' },
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                className={`hub-mode-btn${bodyStyle === opt.id ? ' is-selected' : ''}`}
+                onClick={() => {
+                  unlockAudio();
+                  play('menuClick');
+                  setBodyStyle(opt.id);
+                  setBodyStyleUi(opt.id);
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {social?.available && (
+          <div className="settings-section">
+            <div className="settings-section-head">
+              <h3 className="settings-section-title">Callsign</h3>
+            </div>
+            <p className="settings-hint">
+              Shown in co-op and the server browser. Friend code:{' '}
+              <strong>{social.friendCode || '…'}</strong>
+            </p>
+            <label className="hub-join-field" style={{ marginTop: 0 }}>
+              <span>Display name</span>
+              <input
+                value={callsignDraft}
+                maxLength={16}
+                onChange={(e) => setCallsignDraft(e.target.value)}
+                onBlur={() => {
+                  const n = callsignDraft.trim().slice(0, 16) || 'Survivor';
+                  social.setCallsign(n);
+                  setLocalName?.(n);
+                }}
+              />
+            </label>
+          </div>
+        )}
 
         <label className="settings-row">
           <span className="settings-label">Volume</span>

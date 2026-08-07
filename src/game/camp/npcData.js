@@ -1,5 +1,6 @@
 /**
  * Hub NPC placements — positions match campHub yard.
+ * Face params: keep brows flat / mouths closed for a neutral look (Steve stays anime).
  */
 export const HUB_NPCS = [
   {
@@ -11,7 +12,7 @@ export const HUB_NPCS = [
     color: '#f5f2ea',
     accent: '#c43c2c',
     skin: '#d4a574',
-    face: { browRot: 0.05, mouthW: 0.12, lip: '#8a4040' },
+    face: { browRot: 0.02, browY: 0.07, mouthW: 0.068, mouthH: 0.011, lip: '#7a4840' },
     dialogueId: 'cook',
   },
   {
@@ -23,7 +24,14 @@ export const HUB_NPCS = [
     color: '#6b4a2e',
     accent: '#e8a020',
     skin: '#c4a070',
-    face: { browRot: 0.28, browY: 0.11, mouthH: 0.025, lip: '#4a3028' },
+    face: {
+      browRot: 0.06,
+      browY: 0.075,
+      mouthW: 0.06,
+      mouthH: 0.01,
+      lip: '#4a3028',
+      lookY: -0.002,
+    },
     dialogueId: 'quartermaster',
   },
   {
@@ -35,7 +43,14 @@ export const HUB_NPCS = [
     color: '#1e3270',
     accent: '#e8e8f0',
     skin: '#b89068',
-    face: { browRot: 0.35, browY: 0.12, mouthW: 0.08, lip: '#3a2820' },
+    face: {
+      browRot: 0.08,
+      browY: 0.078,
+      mouthW: 0.055,
+      mouthH: 0.01,
+      lip: '#3a2820',
+      lookY: -0.003,
+    },
     dialogueId: 'foreman',
   },
   {
@@ -47,7 +62,14 @@ export const HUB_NPCS = [
     outfitId: 'maxGypsy',
     color: '#f7f7f7',
     accent: '#c42828',
-    face: { browRot: -0.1, browY: 0.09, lookY: 0.005, eye: '#1a2018' },
+    face: {
+      browRot: 0.03,
+      browY: 0.068,
+      lookY: -0.002,
+      eye: '#1a2018',
+      mouthW: 0.06,
+      mouthH: 0.01,
+    },
     dialogueId: 'max',
   },
   {
@@ -60,7 +82,14 @@ export const HUB_NPCS = [
     spinChamber: true,
     color: '#8a4a28',
     accent: '#c42828',
-    face: { browRot: 0.2, eye: '#2a1810', lookX: 0.008 },
+    face: {
+      browRot: 0.05,
+      browY: 0.07,
+      eye: '#2a1810',
+      lookX: 0.004,
+      mouthW: 0.062,
+      mouthH: 0.011,
+    },
     dialogueId: 'duke',
   },
   {
@@ -75,7 +104,13 @@ export const HUB_NPCS = [
     sleeve: '#3a2818',
     pants: '#1a1420',
     skin: '#c49a6c',
-    face: { browRot: 0.08, mouthW: 0.14, mouthH: 0.04, lip: '#a05050' },
+    face: {
+      browRot: 0.03,
+      browY: 0.07,
+      mouthW: 0.072,
+      mouthH: 0.012,
+      lip: '#8a5050',
+    },
     dialogueId: 'ryoma',
   },
   {
@@ -136,7 +171,14 @@ export const HUB_NPCS = [
     sleeve: '#3a4038',
     pants: '#1a1e1a',
     skin: '#b89068',
-    face: { browRot: 0.12, lookY: -0.01, mouthW: 0.09, lip: '#5a2828' },
+    face: {
+      browRot: 0.04,
+      browY: 0.07,
+      lookY: -0.004,
+      mouthW: 0.058,
+      mouthH: 0.01,
+      lip: '#5a2828',
+    },
     dialogueId: 'sims',
   },
   {
@@ -149,16 +191,16 @@ export const HUB_NPCS = [
     color: '#002b7f',
     accent: '#fcd116',
     face: {
-      browRot: 0.55,
-      browY: 0.08,
+      browRot: 0.1,
+      browY: 0.074,
       brow: '#0a0806',
-      lookY: -0.012,
+      lookY: -0.004,
       lookX: 0,
       eye: '#0e0a06',
-      eyeY: 0.02,
-      mouthW: 0.06,
-      mouthH: 0.02,
-      mouthY: -0.12,
+      eyeY: 0.026,
+      mouthW: 0.05,
+      mouthH: 0.01,
+      mouthY: -0.1,
       lip: '#4a2018',
     },
     dialogueId: 'vasile',
@@ -175,13 +217,13 @@ export const HUB_NPCS = [
     pants: '#1a1814',
     skin: '#a89070',
     face: {
-      browRot: 0.4,
-      browY: 0.11,
-      lookY: -0.015,
+      browRot: 0.07,
+      browY: 0.076,
+      lookY: -0.005,
       eye: '#1a1810',
-      mouthW: 0.05,
-      mouthH: 0.018,
-      mouthY: -0.11,
+      mouthW: 0.048,
+      mouthH: 0.01,
+      mouthY: -0.1,
       lip: '#4a3028',
     },
     dialogueId: 'thirteenYears',
