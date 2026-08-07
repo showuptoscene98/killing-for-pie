@@ -64,10 +64,11 @@ function CampHUD({
   onJoinSquad,
   onStartMatch,
   onLeaveSquad,
+  settingsOpen,
+  setSettingsOpen,
 }) {
   const { camp, bonuses, clearLastRun } = useCamp();
   const social = useSocial();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [copied, setCopied] = useState('');
   const [browserTab, setBrowserTab] = useState('all');
   const [friendCodeInput, setFriendCodeInput] = useState('');
@@ -735,6 +736,10 @@ function HubShellInner({
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [questOpen, setQuestOpen] = useState(false);
+  // Lives here rather than in CampHUD so it can feed `overlayOpen` below —
+  // otherwise the settings panel opens with the mouse still captured, which
+  // leaves the sliders unclickable and the camera spinning behind it.
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [deployOpen, setDeployOpen] = useState(false);
   const [blackjackOpen, setBlackjackOpen] = useState(false);
   const [deployMode, setDeployMode] = useState('solo');
@@ -874,7 +879,13 @@ function HubShellInner({
     }
   }, [mapId, phase, isHost, setMap]);
 
-  const overlayOpen = menuOpen || questOpen || deployOpen || blackjackOpen || !!dialogue;
+  const overlayOpen =
+    menuOpen ||
+    questOpen ||
+    deployOpen ||
+    blackjackOpen ||
+    settingsOpen ||
+    !!dialogue;
 
   useEffect(() => {
     if (inputState.altFreeCursor) {
@@ -1105,6 +1116,8 @@ function HubShellInner({
         onJoinSquad={onJoinSquad}
         onStartMatch={onStartMatch}
         onLeaveSquad={onLeaveSquad}
+        settingsOpen={settingsOpen}
+        setSettingsOpen={setSettingsOpen}
       />
       <QuestLog open={questOpen} onClose={() => setQuestOpen(false)} />
       <DialogueBox

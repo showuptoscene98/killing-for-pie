@@ -1,0 +1,6 @@
+{
+  "comment": "Single source of truth for deployable map ids. Imported by the ESM client (activeMap.js) and required by the CommonJS LAN relay (scripts/coop-server.js) so the relay can never silently reject a map the game offers. mapListMatchesIds in activeMap.test.ts fails CI if this drifts from MAP_LIST.",
+  "defaultId": "camp",
+  "hubId": "campHub",
+  "ids": ["camp", "nacht", "bunker", "sofia", "farm", "house"]
+}

@@ -217,16 +217,16 @@ export class CoopSession {
       if (this.backend === 'peer') {
         if (this.role === 'client' && this._conn?.open) return;
         if (this.role === 'host') {
-          const anyOpen = [...this._conns.values()].some((c) => c.open);
-          if (anyOpen || !this.started) {
-            // Host can keep lobby / match if signaling alone flaked
-            try {
-              this.peer?.reconnect?.();
-            } catch (_) {
-              /* ignore */
-            }
-            return;
+          // The host runs the simulation, so losing signaling never has to end
+          // their session — with no peers left they simply carry on solo. The
+          // old check also required a live peer once `started` was true, which
+          // killed the match of a host whose friends had all dropped.
+          try {
+            this.peer?.reconnect?.();
+          } catch (_) {
+            /* ignore */
           }
+          return;
         }
       }
       this._failDisconnect(message);

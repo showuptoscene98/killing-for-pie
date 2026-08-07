@@ -1,4 +1,4 @@
-import { awardKill } from './PointsSystem';
+import { awardKill, creditKills } from './PointsSystem';
 import { onZombieKilled } from './RoundSystem';
 import { play } from '../audio/sound';
 import { recordAchievementEvent } from '../camp/campData';
@@ -112,6 +112,7 @@ export function activatePowerup(state, zombies, type) {
     play('powerupNuke');
     const mult = (state.pointsMult || 1) * (pu.doublePointsTimer > 0 ? 2 : 1);
     state.points += Math.round(POWERUP.nukePoints * mult);
+    let nuked = 0;
     for (let i = 0; i < zombies.length; i++) {
       const z = zombies[i];
       if (z.dead) continue;
@@ -120,7 +121,12 @@ export function activatePowerup(state, zombies, type) {
       z.deathTimer = 0.55 + Math.random() * 0.25;
       z.hitFlash = 0.2;
       onZombieKilled(state);
+      nuked += 1;
     }
+    // A nuke pays its flat bonus instead of per-kill points, but the bodies
+    // still have to count as kills — otherwise the HUD counter, kill quests,
+    // and the end-of-run scrap payout all silently ignore them.
+    creditKills(state, nuked);
     pu.drops.length = 0;
   } else {
     return;

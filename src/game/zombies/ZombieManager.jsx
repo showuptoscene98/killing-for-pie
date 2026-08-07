@@ -25,7 +25,13 @@ import { onDamaged } from '../systems/HealthRegen';
 import { knockDownPlayer } from '../net/coopState';
 import ZombieModel from './Zombie';
 
-const MAX_ZOMBIES = 28;
+/**
+ * Corpses linger in the array for their death animation, so the pool needs
+ * headroom above the live cap. Derived from ROUND.maxActive so raising the live
+ * cap can't silently starve spawning.
+ */
+const CORPSE_HEADROOM = 6;
+const MAX_ZOMBIES = ROUND.maxActive + CORPSE_HEADROOM;
 /** Soft body radius between chasing zombies (match collideEntity radius 0.35) */
 const ZOMBIE_SEP = 0.72;
 let nextId = 1;
@@ -526,6 +532,16 @@ export default function ZombieManager() {
         tickZombieMelee(z, state, target, dist, clampedDt, sameFloor);
       }
     }
+
+    // Reconcile against the live array instead of trusting the incremental
+    // counter. Any zombie removed without going through onZombieKilled used to
+    // leave zombiesAlive too high, which stalls the round forever because the
+    // intermission check waits for it to reach zero.
+    let alive = 0;
+    for (let i = 0; i < zombies.length; i++) {
+      if (!zombies[i].dead) alive += 1;
+    }
+    state.zombiesAlive = alive;
   });
 
   return (

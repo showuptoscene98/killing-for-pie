@@ -48,11 +48,21 @@ function remoteIp(reqOrSocket) {
   return String(addr).replace(/^::ffff:/i, '');
 }
 
+// Shared with the client so the relay can't reject a map the deploy UI offers.
+const COMBAT_MAPS = require('../src/game/map/combatMapIds.json');
+const DEFAULT_MAP_ID = COMBAT_MAPS.defaultId;
+const VALID_MAP_IDS = new Set(COMBAT_MAPS.ids);
+
+function normalizeMapId(id) {
+  const next = String(id || '');
+  return VALID_MAP_IDS.has(next) ? next : DEFAULT_MAP_ID;
+}
+
 let nextId = 1;
 const clients = new Map(); // id -> { ws, id, name, isHost }
 let hostId = null;
 let started = false;
-let roomMapId = 'bunker';
+let roomMapId = DEFAULT_MAP_ID;
 let hostLeaveTimer = null;
 const HOST_LEAVE_GRACE_MS = 4000;
 
@@ -113,7 +123,7 @@ function dissolveRoom(reason) {
     }
   });
   clients.clear();
-  roomMapId = 'bunker';
+  roomMapId = DEFAULT_MAP_ID;
 }
 
 function resetRoomIfEmpty() {
@@ -124,7 +134,7 @@ function resetRoomIfEmpty() {
     }
     hostId = null;
     started = false;
-    roomMapId = 'bunker';
+    roomMapId = DEFAULT_MAP_ID;
   }
 }
 
@@ -296,7 +306,7 @@ wss.on('connection', (ws, req) => {
       if (id !== hostId) return;
       if (playersList().length < 1) return;
       started = true;
-      if (msg.mapId) roomMapId = String(msg.mapId);
+      if (msg.mapId) roomMapId = normalizeMapId(msg.mapId);
       broadcast({
         type: 'start',
         players: playersList(),
@@ -307,8 +317,7 @@ wss.on('connection', (ws, req) => {
 
     if (msg.type === 'setMap') {
       if (id !== hostId || started) return;
-      const next = String(msg.mapId || 'bunker');
-      if (next === 'bunker' || next === 'camp') roomMapId = next;
+      roomMapId = normalizeMapId(msg.mapId);
       syncLobby();
       return;
     }

@@ -6,6 +6,8 @@ import campHub from './maps/campHub';
 import farm from './maps/farm';
 import house from './maps/house';
 
+import combatMapIds from './combatMapIds.json';
+
 export const MAPS = {
   bunker,
   camp,
@@ -16,11 +18,17 @@ export const MAPS = {
   house,
 };
 
-/** Combat deploy maps only — hub excluded */
-export const MAP_LIST = [camp, nacht, bunker, sofia, farm, house];
+/** Deployable map ids, shared with the LAN relay. Hub excluded. */
+export const COMBAT_MAP_IDS = combatMapIds.ids;
+/** Combat deploy maps only — hub excluded. Order drives the deploy UI. */
+export const MAP_LIST = COMBAT_MAP_IDS.map((id) => MAPS[id]);
 /** Default combat deploy (Pie Yard) — never the hub */
-export const DEFAULT_MAP_ID = 'camp';
-export const HUB_MAP_ID = 'campHub';
+export const DEFAULT_MAP_ID = combatMapIds.defaultId;
+export const HUB_MAP_ID = combatMapIds.hubId;
+
+export function isCombatMapId(id) {
+  return COMBAT_MAP_IDS.includes(id);
+}
 
 const MAP_KEY = 'kfp_selected_map';
 

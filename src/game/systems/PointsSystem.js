@@ -12,11 +12,21 @@ export function awardHit(state, headshot) {
   applyPoints(state, headshot ? POINTS.headshotHit : POINTS.hit);
 }
 
+/**
+ * Record kills for stats/quests/achievements without paying per-kill points.
+ * Batched because a nuke credits the whole field at once and each
+ * recordAchievementEvent call writes to localStorage.
+ */
+export function creditKills(state, count = 1) {
+  if (count <= 0) return;
+  state.totalKills += count;
+  const { newly } = recordAchievementEvent('kill', { count });
+  queueAchievementBanners(state, newly);
+}
+
 export function awardKill(state, headshot) {
   applyPoints(state, headshot ? POINTS.headshotKill : POINTS.kill);
-  state.totalKills += 1;
-  const { newly } = recordAchievementEvent('kill');
-  queueAchievementBanners(state, newly);
+  creditKills(state, 1);
 }
 
 export function canAfford(state, cost) {

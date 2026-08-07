@@ -8,6 +8,7 @@ import React, {
   useState,
 } from 'react';
 import { getSupabase, isSupabaseConfigured } from './supabaseClient';
+import { DEFAULT_MAP_ID } from '../map/activeMap';
 
 const SocialContext = createContext(null);
 
@@ -135,38 +136,20 @@ export function SocialProvider({ children }) {
       } catch {
         /* optional */
       }
-      const { data, error: err } = await sb
-        .from('lobbies')
-        .select(
-          'id, host_id, room_code, map_id, player_count, max_players, is_public, status, heartbeat_at'
-        )
-        .eq('status', 'open')
-        .order('heartbeat_at', { ascending: false })
-        .limit(50);
+      // One RPC instead of a lobby query plus an N+1 profile lookup. It also
+      // keeps host friend codes server-side: profiles is only readable for
+      // yourself and people you already have a friendship row with.
+      const { data, error: err } = await sb.rpc('list_open_lobbies');
       if (err) {
         console.warn('[social] lobbies', err.message);
         setError(err.message);
         return [];
       }
-      const hostIds = [...new Set((data || []).map((r) => r.host_id))];
-      const profileMap = {};
-      if (hostIds.length) {
-        const { data: profiles } = await sb
-          .from('profiles')
-          .select('id, callsign, friend_code')
-          .in('id', hostIds);
-        for (const p of profiles || []) profileMap[p.id] = p;
-      }
-      const friendIds = new Set(friends.map((f) => f.id));
-      let rows = (data || []).map((row) => {
-        const host = profileMap[row.host_id] || {};
-        return {
-          ...row,
-          hostCallsign: host.callsign || 'Host',
-          hostFriendCode: host.friend_code || '',
-          isFriend: friendIds.has(row.host_id),
-        };
-      });
+      let rows = (data || []).map((row) => ({
+        ...row,
+        hostCallsign: row.host_callsign || 'Host',
+        isFriend: !!row.is_friend,
+      }));
       if (tab === 'friends') {
         rows = rows.filter((r) => r.isFriend || r.host_id === userId);
       } else if (tab === 'public') {
@@ -175,7 +158,7 @@ export function SocialProvider({ children }) {
       setLobbies(rows);
       return rows;
     },
-    [userId, friends]
+    [userId]
   );
 
   const ensureAuth = useCallback(async () => {
@@ -285,9 +268,7 @@ export function SocialProvider({ children }) {
       if (code === friendCode) throw new Error('That is your own code');
 
       const { data: target, error: findErr } = await sb
-        .from('profiles')
-        .select('id, callsign, friend_code')
-        .ilike('friend_code', code)
+        .rpc('find_profile_by_friend_code', { code })
         .maybeSingle();
       if (findErr) throw findErr;
       if (!target) throw new Error('No survivor with that code');
@@ -401,7 +382,7 @@ export function SocialProvider({ children }) {
         .insert({
           host_id: userId,
           room_code: String(roomCode).toUpperCase(),
-          map_id: mapId || 'house',
+          map_id: mapId || DEFAULT_MAP_ID,
           player_count: playerCount,
           max_players: 4,
           is_public: !!isPublic,
@@ -480,7 +461,7 @@ export function SocialProvider({ children }) {
           from_id: userId,
           from_callsign: callsign,
           room_code: String(roomCode).toUpperCase(),
-          map_id: mapId || 'house',
+          map_id: mapId || DEFAULT_MAP_ID,
         },
       });
       if (err) throw err;
