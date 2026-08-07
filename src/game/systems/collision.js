@@ -98,11 +98,11 @@ const PROP_PARKOUR = {
     solid: true,
   },
   tank: {
-    /** hull long on local Z; yaw ~PI/2 spans the gate */
-    w: 3.4,
-    d: 7.2,
-    topFromBase: 2.35,
-    solidH: 2.35,
+    /** hull+tracks ~3.2×5.6 — was 3.4×7.2 (invisible walls past the mesh) */
+    w: 3.2,
+    d: 5.6,
+    topFromBase: 2.2,
+    solidH: 2.2,
     solid: true,
   },
   shantyRoof: {
@@ -128,15 +128,17 @@ const PROP_PARKOUR = {
     solid: true,
   },
   tent: {
-    w: 2.2,
-    d: 2.6,
+    /** Core only — leave open flap / eaves walkable (full cloth is 2.4×2.8) */
+    w: 1.55,
+    d: 1.7,
     topFromBase: 1.55,
     solidH: 1.55,
     solid: true,
   },
   shed: {
-    w: 5.2,
-    d: 3.8,
+    /** Slightly inside visual shell so corners don't snag */
+    w: 4.7,
+    d: 3.4,
     topFromBase: 3.1,
     solidH: 3.1,
     solid: true,
@@ -156,8 +158,8 @@ const PROP_PARKOUR = {
     solid: true,
   },
   panelFlat: {
-    w: 4.2,
-    d: 1.8,
+    w: 3.9,
+    d: 1.55,
     topFromBase: 5.4,
     solidH: 5.4,
     solid: true,
@@ -502,8 +504,9 @@ export function getWallColliders() {
       id: p.id,
       x: p.x,
       z: p.z,
-      w: p.w * 0.92,
-      d: p.d * 0.92,
+      // Keep solids inside the mesh so corners don't create invisible catch walls
+      w: p.w * 0.86,
+      d: p.d * 0.86,
       y0: p.y0 ?? 0,
       y1: p.y,
     });
@@ -576,17 +579,18 @@ export function collideEntity(x, z, radius, colliders = [], feetY = 0) {
 }
 
 /**
- * Solid body collision vs boss zombies. Mutates boss xz when pushBoss is true.
- * Returns the resolved player xz.
+ * Solid body collision vs zombies (and optionally only bosses).
+ * Mutates zombie xz when pushZombie is true. Returns resolved player xz.
  */
-export function separateFromBossZombies(
+export function separateFromZombies(
   px,
   pz,
   zombies,
   {
     playerRadius = PLAYER.radius,
     playerFeetY = 0,
-    pushBoss = true,
+    pushZombie = true,
+    bossesOnly = false,
   } = {}
 ) {
   let x = px;
@@ -594,38 +598,91 @@ export function separateFromBossZombies(
   if (!zombies?.length) return { x, z };
 
   for (let i = 0; i < zombies.length; i++) {
-    const boss = zombies[i];
-    if (!boss || !boss.boss || boss.dead) continue;
-    if (boss.phase && boss.phase !== 'chase') continue;
-    if (Math.abs((boss.y || 0) - playerFeetY) > 1.25) continue;
+    const zom = zombies[i];
+    if (!zom || zom.dead) continue;
+    if (bossesOnly && !zom.boss) continue;
+    if (zom.phase && zom.phase !== 'chase') continue;
+    if (Math.abs((zom.y || 0) - playerFeetY) > 1.25) continue;
 
-    const br = boss.radius || ROUND.bossRadius;
+    const br = zom.boss
+      ? zom.radius || ROUND.bossRadius
+      : zom.radius || 0.35;
     const minDist = playerRadius + br;
-    const dx = x - boss.x;
-    const dz = z - boss.z;
+    const dx = x - zom.x;
+    const dz = z - zom.z;
     const dist = Math.hypot(dx, dz);
     if (dist >= minDist) continue;
 
     if (dist < 1e-4) {
-      const a = (boss.id || 0) * 2.399;
+      const a = (zom.id || 0) * 2.399;
       const nx = Math.cos(a);
       const nz = Math.sin(a);
-      x = boss.x + nx * minDist;
-      z = boss.z + nz * minDist;
+      x = zom.x + nx * minDist;
+      z = zom.z + nz * minDist;
       continue;
     }
 
     const push = minDist - dist;
     const nx = dx / dist;
     const nz = dz / dist;
-    // Player takes most of the shove so bosses feel like solid walls
-    const playerShare = pushBoss ? 0.72 : 1;
+    // Player takes most of the shove so bodies feel solid
+    const playerShare = pushZombie ? (zom.boss ? 0.72 : 0.55) : 1;
     x += nx * push * playerShare;
     z += nz * push * playerShare;
-    if (pushBoss) {
-      boss.x -= nx * push * (1 - playerShare);
-      boss.z -= nz * push * (1 - playerShare);
+    if (pushZombie) {
+      zom.x -= nx * push * (1 - playerShare);
+      zom.z -= nz * push * (1 - playerShare);
     }
+  }
+
+  return { x, z };
+}
+
+/** @deprecated use separateFromZombies */
+export function separateFromBossZombies(px, pz, zombies, opts = {}) {
+  return separateFromZombies(px, pz, zombies, {
+    ...opts,
+    bossesOnly: true,
+    pushZombie: opts.pushBoss !== false,
+  });
+}
+
+/** Keep local player from walking through remote squadmates. */
+export function separateFromPlayers(
+  px,
+  pz,
+  remotes,
+  {
+    playerRadius = PLAYER.radius,
+    playerFeetY = 0,
+  } = {}
+) {
+  let x = px;
+  let z = pz;
+  if (!remotes?.length) return { x, z };
+
+  for (let i = 0; i < remotes.length; i++) {
+    const r = remotes[i];
+    if (!r || r.status === 'dead' || r.status === 'spectator') continue;
+    const ry = (r.y ?? r.position?.y ?? PLAYER.height) - PLAYER.height;
+    if (Math.abs(ry - playerFeetY) > 1.35) continue;
+    const rx = r.x ?? r.position?.x;
+    const rz = r.z ?? r.position?.z;
+    if (typeof rx !== 'number' || typeof rz !== 'number') continue;
+
+    const minDist = playerRadius * 2;
+    const dx = x - rx;
+    const dz = z - rz;
+    const dist = Math.hypot(dx, dz);
+    if (dist >= minDist || dist < 1e-4) {
+      if (dist < 1e-4) {
+        x = rx + minDist;
+      }
+      continue;
+    }
+    const push = minDist - dist;
+    x += (dx / dist) * push;
+    z += (dz / dist) * push;
   }
 
   return { x, z };

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { useCamp } from './CampContext';
 import { collidePlayer, buildFrameColliders } from '../systems/collision';
 import {
@@ -29,7 +29,7 @@ export default function HubPlayer({
   onInteract,
   promptRef,
 }) {
-  const { stateRef } = useGame();
+  const { stateRef } = useGameApi();
   const { recordParkour } = useCamp();
   const { camera, gl } = useThree();
   const onInteractRef = useRef(onInteract);

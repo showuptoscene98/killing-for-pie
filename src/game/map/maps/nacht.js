@@ -77,10 +77,6 @@ const WALLS = [
   // East help back wall bits
   { x: 7, z: 2, w: 4.0, d: T, y: 0, h: STORY },
 
-  // ── Stair hole railings (upper) ───────────────────────────────
-  { x: -2.05, z: 1.0, w: T, d: 4.2, y: F2, h: 1.05 },
-  { x: 2.05, z: 1.0, w: T, d: 4.2, y: F2, h: 1.05 },
-  { x: 0, z: -1.0, w: 3.7, d: T, y: F2, h: 1.05 }, // south rail of hole
 ];
 
 const ROOMS = {
@@ -272,18 +268,12 @@ const STAIRS = [
 ];
 
 /**
- * Upper walk decks — leave hole over stairs (x∈[-1.55,1.55], z∈[-1.05,3.05]).
- * Side plates kiss the stair lip (±1.55) without eating the climb path.
- * Full width to outer walls (±9).
+ * Upper walk decks — full solid plate (no stair hole).
+ * Stairs still ramp up; once feet near F2 you snap onto this deck.
+ * Overlaps walls slightly so seams never drop you through.
  */
 const WALK_FLOORS = [
-  // South of hole (over spawn) — stop at stair south lip
-  { x: 0, z: -6.05, w: 17.95, d: 9.9, y: F2 }, // z -11 → -1.1
-  // North of hole — start at stair north lip
-  { x: 0, z: 5.1, w: 17.95, d: 3.9, y: F2 }, // z 3.15 → 7.05
-  // West / east of hole — flush to stair sides (±1.6)
-  { x: -5.4, z: 1.0, w: 7.7, d: 4.2, y: F2 }, // x -9.25 → -1.55
-  { x: 5.4, z: 1.0, w: 7.7, d: 4.2, y: F2 }, // x 1.55 → 9.25
+  { x: 0, z: -2, w: 18.2, d: 18.4, y: F2 }, // x ±9.1, z -11.2 → 7.2
 ];
 
 const WALLBUYS = [
@@ -328,23 +318,23 @@ const SPAWN_POINTS = [
 const PLAYER_SPAWN = { x: 0, y: 0, z: -8 };
 
 const FLOORS = [
-  // Ground — keep mid-tones so toon shading stays readable
-  { x: 0, z: -6, w: 10, d: 10, color: '#5a5044' },
-  { x: 0, z: -6, w: 6, d: 6, color: '#6a5e4e', y: 0.016 },
-  { x: -7, z: -2, w: 4, d: 14, color: '#524838' },
-  { x: 7, z: -2, w: 4, d: 14, color: '#524838' },
-  { x: 0, z: 3, w: 10, d: 8, color: '#4a4238' },
-  // Upper decks (visual + underside)
+  // Full ground slab — no visual voids inside the shell
+  { x: 0, z: -2, w: 18.2, d: 18.4, color: '#5a5044' },
+  { x: 0, z: -6, w: 8, d: 8, color: '#6a5e4e', y: 0.016 },
+  { x: -6.5, z: -1, w: 4.5, d: 12, color: '#524838', y: 0.014 },
+  { x: 6.5, z: -1, w: 4.5, d: 12, color: '#524838', y: 0.014 },
+  { x: 0, z: 3.5, w: 10, d: 6, color: '#4a4238', y: 0.014 },
+  // Upper decks (visual + underside) — solid, no hole
   ...WALK_FLOORS.map((f) => ({
     ...f,
     color: '#5a5248',
-    thick: 0.14,
+    thick: 0.16,
   })),
   {
     x: 0,
     z: -6,
-    w: 8,
-    d: 6,
+    w: 10,
+    d: 8,
     y: F2 + 0.02,
     color: '#6a6054',
   },

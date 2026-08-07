@@ -11,6 +11,39 @@ const _dir = new THREE.Vector3();
 const _body = new THREE.Vector3();
 const _oc = new THREE.Vector3();
 
+/** Silly barks when a zombie loses the privilege of knees */
+export const CRAWLER_BARKS = [
+  'Be right there—on my elbows!',
+  'Legs? Never heard of her.',
+  'I identify as a throw rug now.',
+  'Crawling toward destiny (and pie).',
+  'My lower half filed for divorce.',
+  'Speedrun: Any% Drag Mode',
+  'Excuse me, shin-height traffic!',
+  'These knees are more of a concept.',
+  'Just a casual army crawl to the buffet.',
+  'Legs left the chat.',
+  'Technically still upright… spiritually.',
+  'Do you have a moment for floor plans?',
+  'Plot twist: the floor is my best friend.',
+  'I paid for the whole zombie experience.',
+  'Coming through like a haunted Roomba!',
+];
+
+export function pickCrawlBark(z) {
+  const n = CRAWLER_BARKS.length;
+  const seed = ((z?.id || 0) * 17 + (z?.variantSeed || 0) * 3 + (z?.crawlBarkIdx || 0) * 41) >>> 0;
+  return CRAWLER_BARKS[seed % n];
+}
+
+export function crippleZombie(zombie) {
+  if (!zombie || zombie.dead || zombie.crawling) return;
+  zombie.crawling = true;
+  zombie.crawlBarkIdx = 0;
+  zombie.crawlBark = pickCrawlBark(zombie);
+  zombie.crawlBarkT = 0;
+}
+
 export function fireHitscan(camera, weaponDef, zombies, state, scoreState) {
   camera.getWorldDirection(direction);
   return fireHitscanFromRay(
@@ -41,7 +74,7 @@ export function fireHitscanFromRay(
 ) {
   const score = scoreState || worldState;
 
-  if (weaponDef.projectile === 'pie') {
+  if (weaponDef.projectile === 'pie' || weaponDef.projectile === 'chainsaw') {
     const dir = baseDir.clone ? baseDir.clone() : new THREE.Vector3().copy(baseDir);
     spawnPieProjectile(worldState, origin, dir, weaponDef);
     return true;
@@ -85,7 +118,11 @@ export function fireHitscanFromRay(
 
   const damaged = new Map();
   hits.forEach((h) => {
-    const prev = damaged.get(h.zombie) || { damage: 0, headshot: false };
+    const prev = damaged.get(h.zombie) || {
+      damage: 0,
+      headshot: false,
+      legshot: false,
+    };
     const pierceMult = Math.pow(pierceFalloff, h.pierceIndex || 0);
     const dmg =
       weaponDef.damage *
@@ -95,11 +132,12 @@ export function fireHitscanFromRay(
     damaged.set(h.zombie, {
       damage: prev.damage + dmg,
       headshot: prev.headshot || h.headshot,
+      legshot: prev.legshot || h.legshot,
       impact: h,
     });
   });
 
-  // Crust Cannon splash around primary hit
+  // Pie Ray / Crust Cannon splash around primary hit
   if (splashR > 0 && hits.length) {
     const primary = hits[0];
     const px = primary.zombie.x;
@@ -112,6 +150,7 @@ export function fireHitscanFromRay(
         damaged.set(z, {
           damage: weaponDef.damage * (1 - dist / splashR) * 0.65,
           headshot: false,
+          legshot: false,
         });
       }
     }
@@ -193,6 +232,7 @@ function applyDamageMap(damaged, weaponDef, worldState, score, melee) {
     if (zombie.hp <= 0 && !zombie.dead) {
       killZombie(zombie, worldState, score, info.headshot);
     } else {
+      if (info.legshot) crippleZombie(zombie);
       play(melee ? 'meleeHit' : 'zombieHit');
     }
   });
@@ -208,18 +248,33 @@ function rayHitZombie(origin, dir, z, bestDistCap) {
   let bestDist = bestDistCap;
   const yOff = z.y || 0;
   const sc = z.scale || 1;
+  const crawl = !!z.crawling;
 
-  const consider = (x, y, zz, r, headshot) => {
+  const consider = (x, y, zz, r, zone) => {
     _body.set(x, y, zz);
     const t = raySphere(origin, dir, _body, r);
     if (t != null && t < bestDist) {
       bestDist = t;
-      best = { zombie: z, headshot, dist: t };
+      best = {
+        zombie: z,
+        headshot: zone === 'head',
+        legshot: zone === 'leg',
+        dist: t,
+      };
     }
   };
 
-  consider(z.x, 0.95 * sc + yOff, z.z, 0.5 * sc, false);
-  consider(z.x, 1.55 * sc + yOff, z.z, 0.26 * sc, true);
+  if (crawl) {
+    // Flattened hit volumes — still shootable while army-crawling
+    consider(z.x, 0.28 * sc + yOff, z.z, 0.48 * sc, 'body');
+    consider(z.x, 0.4 * sc + yOff, z.z, 0.26 * sc, 'head');
+  } else {
+    consider(z.x, 0.95 * sc + yOff, z.z, 0.45 * sc, 'body');
+    consider(z.x, 1.55 * sc + yOff, z.z, 0.26 * sc, 'head');
+    consider(z.x - 0.12 * sc, 0.34 * sc + yOff, z.z, 0.24 * sc, 'leg');
+    consider(z.x + 0.12 * sc, 0.34 * sc + yOff, z.z, 0.24 * sc, 'leg');
+    consider(z.x, 0.2 * sc + yOff, z.z, 0.3 * sc, 'leg');
+  }
 
   if (
     z.windowId &&
@@ -235,10 +290,22 @@ function rayHitZombie(origin, dir, z, bestDistCap) {
       const oz = win.position[2];
       const halfW = (win.width || 1.75) * 0.45;
 
-      consider(px, 1.05 + yOff, pz, 0.75, false);
-      consider(px, 1.6 + yOff, pz, 0.38, true);
-      consider(ox, 1.15, oz, halfW, false);
-      consider(ox, 1.7, oz, 0.42, true);
+      consider(px, 1.05 + yOff, pz, 0.75, 'body');
+      consider(px, 1.6 + yOff, pz, 0.38, 'head');
+      consider(ox, 1.15, oz, halfW, 'body');
+      consider(ox, 1.7, oz, 0.42, 'head');
+      if (!crawl) {
+        consider(px, 0.35 + yOff, pz, 0.4, 'leg');
+        consider(ox, 0.4, oz, halfW * 0.7, 'leg');
+      }
+    }
+  }
+
+  // Low impacts on the fat torso sphere still count as kneecappings
+  if (best && !best.headshot && !crawl) {
+    const hitY = (origin.y + dir.y * best.dist - yOff) / sc;
+    if (hitY < 0.62 || best.legshot) {
+      best.legshot = true;
     }
   }
 

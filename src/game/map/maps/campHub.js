@@ -11,11 +11,11 @@ const WALLS = [
   { x: 0, z: B, w: B * 2, d: T },
   { x: -B, z: 0, w: T, d: B * 2 },
   { x: B, z: 0, w: T, d: B * 2 },
-  // Interior shanty dividers (partial — alleys stay walkable)
-  { x: -10, z: 6, w: T, d: 10 },
-  { x: 10, z: -4, w: T, d: 12 },
-  { x: -4, z: 12, w: 10, d: T },
-  { x: 6, z: -12, w: 8, d: T },
+  // Short interior dividers — keep alleys open (old lengths felt like invisible walls)
+  { x: -10, z: 7, w: T, d: 5 },
+  { x: 10, z: -5, w: T, d: 6 },
+  { x: -5, z: 12, w: 5, d: T },
+  { x: 7, z: -12, w: 4.5, d: T },
 ];
 
 const campHub = {

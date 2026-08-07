@@ -910,6 +910,121 @@ const cues = {
     });
   },
 
+  chainsawThrow() {
+    const c = getCtx();
+    if (!c) return;
+    const t = c.currentTime;
+    // Whoosh
+    noiseBurst({
+      peak: 0.22,
+      attack: 0.01,
+      hold: 0.08,
+      release: 0.18,
+      filterFreq: 900,
+      when: t,
+    });
+    // Buzzing blade spin-up
+    tone({
+      type: 'sawtooth',
+      freq: pitchJitter(90, 0.08),
+      freqEnd: 220,
+      peak: 0.16,
+      attack: 0.02,
+      hold: 0.12,
+      release: 0.2,
+      when: t,
+    });
+    tone({
+      type: 'square',
+      freq: pitchJitter(140, 0.1),
+      freqEnd: 60,
+      peak: 0.08,
+      attack: 0.01,
+      hold: 0.05,
+      release: 0.15,
+      when: t + 0.04,
+    });
+  },
+
+  cordPullReload() {
+    const c = getCtx();
+    if (!c) return;
+    const t = c.currentTime;
+    // Cord zip out
+    noiseBurst({
+      peak: 0.14,
+      attack: 0.005,
+      hold: 0.04,
+      release: 0.1,
+      filterFreq: 2400,
+      when: t + 0.15,
+    });
+    tone({
+      type: 'triangle',
+      freq: 320,
+      freqEnd: 110,
+      peak: 0.12,
+      attack: 0.01,
+      hold: 0.05,
+      release: 0.12,
+      when: t + 0.15,
+    });
+    // Second pull
+    noiseBurst({
+      peak: 0.16,
+      attack: 0.005,
+      hold: 0.05,
+      release: 0.12,
+      filterFreq: 1800,
+      when: t + 0.55,
+    });
+    // Engine catches
+    tone({
+      type: 'sawtooth',
+      freq: 70,
+      freqEnd: 160,
+      peak: 0.18,
+      attack: 0.03,
+      hold: 0.15,
+      release: 0.35,
+      when: t + 0.85,
+    });
+    tone({
+      type: 'square',
+      freq: 55,
+      freqEnd: 90,
+      peak: 0.1,
+      attack: 0.02,
+      hold: 0.2,
+      release: 0.4,
+      when: t + 0.9,
+    });
+  },
+
+  chainsawHit() {
+    const c = getCtx();
+    if (!c) return;
+    const t = c.currentTime;
+    noiseBurst({
+      peak: 0.2,
+      attack: 0.005,
+      hold: 0.06,
+      release: 0.14,
+      filterFreq: 700,
+      when: t,
+    });
+    tone({
+      type: 'sawtooth',
+      freq: pitchJitter(180, 0.12),
+      freqEnd: 50,
+      peak: 0.14,
+      attack: 0.01,
+      hold: 0.04,
+      release: 0.12,
+      when: t,
+    });
+  },
+
   meleeSwing() {
     const c = getCtx();
     if (!c) return;

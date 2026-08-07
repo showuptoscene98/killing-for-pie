@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { useCoop } from '../net/CoopContext';
 import { coopSendFire, coopSendInteract } from '../net/CoopSync';
 import { PLAYER, INTERACT_RANGE, BARRICADE, REVIVE } from '../constants';
 import {
   collidePlayer,
   buildFrameColliders,
-  separateFromBossZombies,
+  separateFromZombies,
+  separateFromPlayers,
 } from '../systems/collision';
 import { stepVertical, moveSpeedScale, tryStartSlide, stepSlide } from '../systems/movement';
 import { getClosedDoorColliders, tryBuyDoor } from '../systems/DoorSystem';
@@ -44,7 +45,7 @@ import {
 const tmp = new THREE.Vector3();
 
 export default function Player({ onShoot }) {
-  const { stateRef, zombiesRef, remotesRef } = useGame();
+  const { stateRef, zombiesRef, remotesRef } = useGameApi();
   const { sessionRef } = useCoop();
   const { camera, gl } = useThree();
   usePlayerControls(true);
@@ -171,64 +172,83 @@ export default function Player({ onShoot }) {
     const feetY = state.position.y - PLAYER.height;
     const colliders = buildFrameColliders(doors, boarded);
 
-    const slideMove = stepSlide(state, clampedDt);
-    if (slideMove) {
-      const next = collidePlayer(
-        state.position.x + slideMove.dx,
-        state.position.z + slideMove.dz,
-        colliders,
-        feetY
-      );
-      state.position.x = next.x;
-      state.position.z = next.z;
-    } else if (inputX !== 0 || inputF !== 0) {
-      const len = Math.hypot(inputX, inputF);
-      inputX /= len;
-      inputF /= len;
-      const speed = moveSpeedScale(state, keys.shift) * clampedDt;
-
-      const forwardX = -Math.sin(state.yaw);
-      const forwardZ = -Math.cos(state.yaw);
-      const rightX = Math.cos(state.yaw);
-      const rightZ = -Math.sin(state.yaw);
-
-      const dx = (forwardX * inputF + rightX * inputX) * speed;
-      const dz = (forwardZ * inputF + rightZ * inputX) * speed;
-      state.velocityX = dx / Math.max(clampedDt, 0.001);
-      state.velocityZ = dz / Math.max(clampedDt, 0.001);
-
-      const next = collidePlayer(
-        state.position.x + dx,
-        state.position.z + dz,
-        colliders,
-        feetY
-      );
-      state.position.x = next.x;
-      state.position.z = next.z;
-    } else {
+    // Transit reseat — pin to spawn until MapWorld remounts
+    const transitLocked = (state._transitLock || 0) > 0;
+    if (transitLocked) {
       state.velocityX = 0;
       state.velocityZ = 0;
-    }
+      state.velocityY = 0;
+      state.grounded = true;
+      state.slide = null;
+      state.floorY = state.position.y - PLAYER.height;
+      inputState.jumpPressed = false;
+      inputState.crouchPressed = false;
+    } else {
+      const slideMove = stepSlide(state, clampedDt);
+      if (slideMove) {
+        const next = collidePlayer(
+          state.position.x + slideMove.dx,
+          state.position.z + slideMove.dz,
+          colliders,
+          feetY
+        );
+        state.position.x = next.x;
+        state.position.z = next.z;
+      } else if (inputX !== 0 || inputF !== 0) {
+        const len = Math.hypot(inputX, inputF);
+        inputX /= len;
+        inputF /= len;
+        const speed = moveSpeedScale(state, keys.shift) * clampedDt;
 
-    // Boss zombies have solid bodies — don't walk through them
-    {
-      const bossPush = separateFromBossZombies(
-        state.position.x,
-        state.position.z,
-        zombiesRef.current,
-        { playerFeetY: feetY, pushBoss: false }
-      );
-      const cleared = collidePlayer(bossPush.x, bossPush.z, colliders, feetY);
-      state.position.x = cleared.x;
-      state.position.z = cleared.z;
-    }
+        const forwardX = -Math.sin(state.yaw);
+        const forwardZ = -Math.cos(state.yaw);
+        const rightX = Math.cos(state.yaw);
+        const rightZ = -Math.sin(state.yaw);
 
-    const jumpEdge = inputState.jumpPressed;
-    if (jumpEdge) inputState.jumpPressed = false;
-    stepVertical(state, clampedDt, {
-      jumpPressed: jumpEdge,
-      jumpHeld: !!keys.space,
-    });
+        const dx = (forwardX * inputF + rightX * inputX) * speed;
+        const dz = (forwardZ * inputF + rightZ * inputX) * speed;
+        state.velocityX = dx / Math.max(clampedDt, 0.001);
+        state.velocityZ = dz / Math.max(clampedDt, 0.001);
+
+        const next = collidePlayer(
+          state.position.x + dx,
+          state.position.z + dz,
+          colliders,
+          feetY
+        );
+        state.position.x = next.x;
+        state.position.z = next.z;
+      } else {
+        state.velocityX = 0;
+        state.velocityZ = 0;
+      }
+
+      // Solid bodies — zombies + squadmates
+      {
+        const zPush = separateFromZombies(
+          state.position.x,
+          state.position.z,
+          zombiesRef.current,
+          { playerFeetY: feetY, pushZombie: false }
+        );
+        const pPush = separateFromPlayers(
+          zPush.x,
+          zPush.z,
+          remotesRef?.current,
+          { playerFeetY: feetY }
+        );
+        const cleared = collidePlayer(pPush.x, pPush.z, colliders, feetY);
+        state.position.x = cleared.x;
+        state.position.z = cleared.z;
+      }
+
+      const jumpEdge = inputState.jumpPressed;
+      if (jumpEdge) inputState.jumpPressed = false;
+      stepVertical(state, clampedDt, {
+        jumpPressed: jumpEdge,
+        jumpHeld: !!keys.space,
+      });
+    }
     const eyeDrop = state.slideEyeDrop || 0;
     camera.position.set(
       state.position.x,
@@ -289,7 +309,13 @@ function startReload(state, slot, def) {
   state.reloading = true;
   state.reloadTimer = def.reloadTime * (state.reloadMult || 1);
   if (state.coop && !state.isHost) state._coopReloadReq = true;
-  play(def.projectile === 'pie' ? 'pieReload' : 'gunReload');
+  play(
+    def.projectile === 'chainsaw'
+      ? 'cordPullReload'
+      : def.projectile === 'pie'
+        ? 'pieReload'
+        : 'gunReload'
+  );
   return true;
 }
 
@@ -580,6 +606,7 @@ function tryFire(state, camera, zombiesRef, onShoot, dt, { coopClient, session }
   state.recoilKick = def.recoil * (state.adsAmount > 0.5 ? 0.55 : 1);
   if (!def.automatic) state._semiLocked = true;
   if (def.melee) play('meleeSwing');
+  else if (def.projectile === 'chainsaw') play('chainsawThrow');
   else if (def.projectile === 'pie') play('pieThrow');
   else if (def.pellets) play('gunFireShotgun');
   else if (def.id === 'sniper' || def.id === 'mosin') play('gunFireSniper');
@@ -596,7 +623,7 @@ function tryFire(state, camera, zombiesRef, onShoot, dt, { coopClient, session }
   const fireDef =
     ads && def.adsSpread != null ? { ...def, spread: def.adsSpread } : def;
 
-  if (def.projectile === 'pie') {
+  if (def.projectile === 'pie' || def.projectile === 'chainsaw') {
     const dir = new THREE.Vector3();
     camera.getWorldDirection(dir);
     if (coopClient) {

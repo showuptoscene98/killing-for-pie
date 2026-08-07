@@ -3,7 +3,7 @@ import './App.css';
 import { CampProvider, useCamp } from './game/camp/CampContext';
 import { CoopProvider, useCoop } from './game/net/CoopContext';
 import { SocialProvider } from './game/net/SocialContext';
-import { GameProvider, useGame } from './game/GameContext';
+import { GameProvider, useGameApi, useHud } from './game/GameContext';
 import GameCanvas from './game/GameCanvas';
 import HUD from './game/ui/HUD';
 import MainMenu from './game/ui/MainMenu';
@@ -26,7 +26,8 @@ import { toggleGameFullscreen } from './game/display';
 import { stopMenuAmbience } from './game/audio/sound';
 
 function PlayingShell({ onMenu, onEnterCamp, coop }) {
-  const { hud, depositedRef, stateRef, notify } = useGame();
+  const { depositedRef, stateRef, notify } = useGameApi();
+  const hud = useHud();
   const { depositRun } = useCamp();
   const coopApi = useCoop();
   const [locked, setLocked] = useState(false);
@@ -36,8 +37,10 @@ function PlayingShell({ onMenu, onEnterCamp, coop }) {
   const ignoreEscUntil = useRef(0);
 
   useEffect(() => {
-    const id = setInterval(() => setLocked(!!inputState.locked), 200);
-    return () => clearInterval(id);
+    const syncLock = () => setLocked(!!document.pointerLockElement);
+    syncLock();
+    document.addEventListener('pointerlockchange', syncLock);
+    return () => document.removeEventListener('pointerlockchange', syncLock);
   }, []);
 
   useEffect(() => {

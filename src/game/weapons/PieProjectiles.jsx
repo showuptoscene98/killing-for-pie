@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { awardHit } from '../systems/PointsSystem';
 import { play } from '../audio/sound';
 import { killZombie, isInstaKillActive } from '../systems/PowerupSystem';
@@ -11,19 +11,21 @@ let nextPieId = 1;
 export function spawnPieProjectile(state, origin, direction, weaponDef) {
   if (!state.pies) state.pies = [];
   const dir = direction.clone().normalize();
-  // slight loft so pies arc
-  dir.y += 0.12;
+  const kind = weaponDef.projectile || 'pie';
+  // slight loft so throws arc; chainsaws fly flatter
+  dir.y += kind === 'chainsaw' ? 0.06 : 0.12;
   dir.normalize();
   const speed = weaponDef.projectileSpeed || 22;
   state.pies.push({
     id: nextPieId++,
+    kind,
     x: origin.x + dir.x * 0.6,
     y: origin.y + dir.y * 0.6,
     z: origin.z + dir.z * 0.6,
     vx: dir.x * speed,
     vy: dir.y * speed,
     vz: dir.z * speed,
-    life: 2.8,
+    life: kind === 'chainsaw' ? 3.2 : 2.8,
     damage: weaponDef.damage,
     splash: weaponDef.splashRadius || 2.2,
     grav: weaponDef.projectileGravity || 12,
@@ -36,6 +38,7 @@ function explodePie(pie, zombies, state) {
   pie.spent = true;
   let any = false;
   const insta = isInstaKillActive(state);
+  const isSaw = pie.kind === 'chainsaw';
   for (let i = 0; i < zombies.length; i++) {
     const z = zombies[i];
     if (z.dead) continue;
@@ -48,8 +51,8 @@ function explodePie(pie, zombies, state) {
       : pie.damage * (0.55 + falloff * 0.45);
     z.hp -= dmg;
     z.hitFlash = 0.15;
-    // fling knockback
-    const push = 2.2 * falloff;
+    // fling knockback — saws shred harder
+    const push = (isSaw ? 3.4 : 2.2) * falloff;
     const dx = z.x - pie.x;
     const dz = z.z - pie.z;
     const len = Math.hypot(dx, dz) || 1;
@@ -64,15 +67,49 @@ function explodePie(pie, zombies, state) {
     }
   }
   if (!any) {
-    // soft splat cue reuse
     play('menuHover');
+  } else if (isSaw) {
+    play('chainsawHit');
   }
+}
+
+function updateProjectileMatrices(mesh, pies, kind, maxCount, dummy) {
+  if (!mesh) return;
+  let write = 0;
+  for (let i = 0; i < pies.length && write < maxCount; i++) {
+    const p = pies[i];
+    if (p.spent) continue;
+    if ((p.kind || 'pie') !== kind) continue;
+    const d = dummy;
+    d.position.set(p.x, p.y, p.z);
+    if (kind === 'chainsaw') {
+      // Spin like a thrown saw — fast tumble on the flight axis
+      const t = (p.life || 1) * 14;
+      d.rotation.set(t * 1.7, t * 0.4, t * 2.2);
+      d.scale.set(1.15, 1.15, 1.15);
+    } else {
+      d.rotation.set((p.life || 1) * 8, (p.life || 1) * 5, (p.life || 1) * 3);
+      d.scale.setScalar(1);
+    }
+    d.updateMatrix();
+    mesh.setMatrixAt(write, d.matrix);
+    write++;
+  }
+  for (let i = write; i < maxCount; i++) {
+    dummy.position.set(0, -50, 0);
+    dummy.scale.setScalar(0);
+    dummy.updateMatrix();
+    mesh.setMatrixAt(i, dummy.matrix);
+  }
+  mesh.count = write;
+  mesh.instanceMatrix.needsUpdate = true;
 }
 
 /** Clients render host-synced pies without re-simulating physics */
 export default function PieProjectiles() {
-  const { stateRef, zombiesRef } = useGame();
-  const meshRef = useRef();
+  const { stateRef, zombiesRef } = useGameApi();
+  const pieMeshRef = useRef();
+  const sawMeshRef = useRef();
   const maxPies = 24;
   const dummy = useRef(new THREE.Object3D());
 
@@ -106,12 +143,13 @@ export default function PieProjectiles() {
         if (p.life <= 0) hit = true;
 
         if (!hit) {
+          const hitR = p.kind === 'chainsaw' ? 0.7 : 0.55;
           for (let zi = 0; zi < zombies.length; zi++) {
             const z = zombies[zi];
             if (z.dead) continue;
             const sc = z.scale || 1;
             const dist = Math.hypot(z.x - p.x, z.z - p.z);
-            if (dist < 0.55 * sc && Math.abs(p.y - 1.0 * sc) < 1.1 * sc) {
+            if (dist < hitR * sc && Math.abs(p.y - 1.0 * sc) < 1.1 * sc) {
               hit = true;
               break;
             }
@@ -122,31 +160,22 @@ export default function PieProjectiles() {
       }
     }
 
-    if (!meshRef.current) return;
-    const count = Math.min(pies.length, maxPies);
-    if (count === 0 && meshRef.current.count === 0) return;
-    for (let i = 0; i < maxPies; i++) {
-      const d = dummy.current;
-      if (i < count && !pies[i].spent) {
-        const p = pies[i];
-        d.position.set(p.x, p.y, p.z);
-        d.rotation.set((p.life || 1) * 8, (p.life || 1) * 5, (p.life || 1) * 3);
-        d.scale.setScalar(1);
-      } else {
-        d.position.set(0, -50, 0);
-        d.scale.setScalar(0);
-      }
-      d.updateMatrix();
-      meshRef.current.setMatrixAt(i, d.matrix);
-    }
-    meshRef.current.count = count;
-    meshRef.current.instanceMatrix.needsUpdate = true;
+    const d = dummy.current;
+    updateProjectileMatrices(pieMeshRef.current, pies, 'pie', maxPies, d);
+    updateProjectileMatrices(sawMeshRef.current, pies, 'chainsaw', maxPies, d);
   });
 
   return (
-    <instancedMesh ref={meshRef} args={[undefined, undefined, maxPies]}>
-      <cylinderGeometry args={[0.28, 0.3, 0.12, 8]} />
-      <meshStandardMaterial color="#d4a574" emissive="#5a3018" emissiveIntensity={0.15} />
-    </instancedMesh>
+    <group>
+      <instancedMesh ref={pieMeshRef} args={[undefined, undefined, maxPies]}>
+        <cylinderGeometry args={[0.28, 0.3, 0.12, 8]} />
+        <meshStandardMaterial color="#d4a574" emissive="#5a3018" emissiveIntensity={0.15} />
+      </instancedMesh>
+      {/* Thrown chainsaw — flat bar disc silhouette */}
+      <instancedMesh ref={sawMeshRef} args={[undefined, undefined, maxPies]}>
+        <boxGeometry args={[0.12, 0.55, 0.9]} />
+        <meshStandardMaterial color="#c8a020" emissive="#5a4010" emissiveIntensity={0.2} metalness={0.45} roughness={0.4} />
+      </instancedMesh>
+    </group>
   );
 }

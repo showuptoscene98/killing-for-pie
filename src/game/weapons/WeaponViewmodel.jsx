@@ -1,8 +1,8 @@
-import { forwardRef, useLayoutEffect, useMemo, useRef } from 'react';
+import { forwardRef, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Hud, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { resolveOutfit } from '../player/outfits';
 import { usesBulgarianKit } from '../player/BulgarianKit';
 import { WEAPONS } from './weaponDefs';
@@ -194,6 +194,28 @@ function MagMesh({ weaponId }) {
           color="#d4a574"
         />
         <Part position={[0, 0.08, 0]} args={[0.08, 0.018, 0.08]} color="#c44030" />
+      </group>
+    );
+  }
+  if (weaponId === 'questioneer') {
+    // Starter cord T-handle — left hand yanks this on reload.
+    return (
+      <group>
+        <Part
+          position={[0, 0, 0]}
+          args={[0.012, 0.012, 0.14, 6]}
+          geo="cyl"
+          axis="z"
+          color="#e8e0d0"
+        />
+        <Part position={[0, 0, -0.08]} args={[0.07, 0.018, 0.018]} color="#2a2a2e" />
+        <Part
+          position={[0, 0, 0.06]}
+          args={[0.016, 0.016, 0.02, 6]}
+          geo="cyl"
+          axis="z"
+          color="#8a7018"
+        />
       </group>
     );
   }
@@ -448,6 +470,36 @@ function evalReload(style, r, weaponId, anim) {
     out.leftX = swap * 0.08;
     out.leftPitch = swap * 0.5;
     out.slap = pulse(0.78, 0.95, r) * 0.2;
+  } else if (style === 'cord') {
+    // Questioneer — tip the saw, grab the starter cord, hard yank, settle as it fires up.
+    const tipUp = smoothstep(0.0, 0.16, r) * (1 - smoothstep(0.88, 1, r));
+    out.tip = tipUp * 0.55;
+    out.twist = tipUp * -0.35;
+    out.roll = tipUp * 0.12 + pulse(0.62, 0.78, r) * 0.18;
+    out.drop = tipUp * 0.08;
+    out.pull = tipUp * 0.03;
+
+    const grab = smoothstep(0.12, 0.28, r);
+    const yank = smoothstep(0.32, 0.52, r) * (1 - smoothstep(0.52, 0.68, r));
+    const settle = smoothstep(0.68, 0.9, r);
+
+    out.magX = -grab * 0.02 - yank * 0.08;
+    out.magY = grab * 0.02 - yank * 0.18;
+    out.magZ = grab * 0.04 + yank * 0.22;
+    out.magRotX = yank * -0.9;
+    out.magRotZ = yank * 0.35;
+    out.magVis = grab * (1 - settle * 0.85);
+    out.magScale = 0.95 + grab * 0.1;
+
+    out.leftX = -grab * 0.04 - yank * 0.1;
+    out.leftY = -grab * 0.02 - yank * 0.22;
+    out.leftZ = grab * 0.06 + yank * 0.2;
+    out.leftPitch = grab * 0.35 + yank * 0.85;
+    out.leftYaw = -grab * 0.25 - yank * 0.4;
+    // Second tug stutter — lawnmower vibes
+    out.leftZ += pulse(0.55, 0.66, r) * 0.08;
+    out.leftY -= pulse(0.55, 0.66, r) * 0.06;
+    out.slap = pulse(0.78, 0.96, r) * 0.22 * (anim.slapScale || 1);
   } else if (style === 'bolt') {
     // Mosin — lift and haul the bolt open, thumb a stripper clip down into the
     // fixed magazine, flick the empty clip away, shove the bolt home.
@@ -598,7 +650,7 @@ function ViewmodelScene() {
   const flashLight = useRef();
   const coneRef = useRef();
   const sparkRefs = useRef([]);
-  const { stateRef, hud } = useGame();
+  const { stateRef } = useGameApi();
   const bob = useRef(0);
   const reloadT = useRef(0);
   const kick = useRef(0);
@@ -606,12 +658,22 @@ function ViewmodelScene() {
   const flashAge = useRef(0);
   const wasReloading = useRef(false);
   const prevMuzzle = useRef(0);
+  const [weaponId, setWeaponId] = useState(
+    () =>
+      stateRef.current.weapons[stateRef.current.activeWeapon]?.id ||
+      WEAPONS.m1911.id
+  );
+  const [outfitKey, setOutfitKey] = useState(
+    () =>
+      `${stateRef.current.outfitId || 'chef'}|${stateRef.current.outfitColor || 'default'}`
+  );
+  const weaponIdRef = useRef(weaponId);
+  const outfitKeyRef = useRef(outfitKey);
+  weaponIdRef.current = weaponId;
+  outfitKeyRef.current = outfitKey;
 
-  const weaponId =
-    stateRef.current.weapons[stateRef.current.activeWeapon]?.id ||
-    WEAPONS.m1911.id;
-  const outfitId = stateRef.current.outfitId || 'chef';
-  const outfitColor = stateRef.current.outfitColor || 'default';
+  const outfitId = outfitKey.split('|')[0] || 'chef';
+  const outfitColor = outfitKey.split('|')[1] || 'default';
   const outfitLoadout = stateRef.current.outfitLoadout || null;
   const flashPos = useMemo(() => muzzleOffset(weaponId), [weaponId]);
   const magRest = useMemo(() => magRestPose(weaponId), [weaponId]);
@@ -622,11 +684,6 @@ function ViewmodelScene() {
   magRestRef.current = magRest;
   const animRef = useRef(anim);
   animRef.current = anim;
-
-  void hud.weaponName;
-  void hud.mag;
-  void hud.status;
-  void hud.reloading;
 
   const def = WEAPONS[weaponId] || WEAPONS.m1911;
   const reloadDur = (def.reloadTime || 1.5) * (stateRef.current.reloadMult || 1);
@@ -656,6 +713,11 @@ function ViewmodelScene() {
 
   useFrame((_, dt) => {
     const state = stateRef.current;
+    const nextId = state.weapons[state.activeWeapon]?.id || WEAPONS.m1911.id;
+    if (nextId !== weaponIdRef.current) setWeaponId(nextId);
+    const nextOutfit = `${state.outfitId || 'chef'}|${state.outfitColor || 'default'}`;
+    if (nextOutfit !== outfitKeyRef.current) setOutfitKey(nextOutfit);
+
     if (!root.current || !gunRig.current) return;
 
     const show =
@@ -773,6 +835,23 @@ function ViewmodelScene() {
       swingYaw = strike * -1.5 + follow * -0.55;
       swingRoll = strike * 1.1 + follow * 0.4;
       swingBottle = strike * -0.7 + follow * -0.22;
+    } else if (style === 'cord') {
+      // Throw wind-up → release the saw forward.
+      const span = def.fireRate || 0.75;
+      const active = state.fireCooldown > 0 && !state.reloading;
+      const ct = active
+        ? clamp01(1 - Math.max(0, state.fireCooldown) / span)
+        : 1;
+      const wind = active ? 1 - smoothstep(0.0, 0.28, ct) : 0;
+      const release = active
+        ? smoothstep(0.12, 0.4, ct) * (1 - smoothstep(0.4, 0.85, ct))
+        : 0;
+      swingX = wind * 0.12 + release * -0.08;
+      swingY = wind * 0.08 + release * 0.04;
+      swingZ = wind * 0.1 + release * -0.22;
+      swingPitch = wind * -0.45 + release * 0.55;
+      swingYaw = wind * 0.35 + release * -0.25;
+      swingRoll = wind * -0.4 + release * 0.65;
     }
 
     const adsDrop = adsHide ? adsT * 1.35 : 0;
@@ -892,9 +971,9 @@ function ViewmodelScene() {
       );
     }
 
-    const isPie = weaponId === 'spatula';
+    const isThrown = style === 'pie' || style === 'cord';
     const isMelee = style === 'melee';
-    const flashing = !isPie && !isMelee && state.muzzleFlash > 0 && a.flashScale > 0;
+    const flashing = !isThrown && !isMelee && state.muzzleFlash > 0 && a.flashScale > 0;
     if (flashing) flashAge.current = 0;
     else flashAge.current += dt;
 
@@ -913,12 +992,12 @@ function ViewmodelScene() {
     }
 
     if (flash.current) {
-      flash.current.visible = flashOn && !isPie && !isMelee;
+      flash.current.visible = flashOn && !isThrown && !isMelee;
       flash.current.position.set(mz[0], mz[1], mz[2]);
       flash.current.scale.setScalar(flashScaleVal);
     }
     if (coneRef.current) {
-      coneRef.current.visible = flashOn && !isPie && !isMelee;
+      coneRef.current.visible = flashOn && !isThrown && !isMelee;
       coneRef.current.position.set(mz[0], mz[1], mz[2] - 0.06);
       coneRef.current.rotation.set(-Math.PI / 2, 0, Math.random() * 6);
       coneRef.current.scale.setScalar(flashScaleVal * 1.15);
@@ -926,13 +1005,13 @@ function ViewmodelScene() {
     if (flashLight.current) {
       flashLight.current.position.set(mz[0], mz[1], mz[2]);
       flashLight.current.intensity =
-        flashOn && !isPie && !isMelee
+        flashOn && !isThrown && !isMelee
           ? a.lightIntensity + Math.random() * 4
           : 0;
     }
     sparkRefs.current.forEach((spark, i) => {
       if (!spark) return;
-      const useSpark = flashOn && !isPie && !isMelee && i < a.sparkCount;
+      const useSpark = flashOn && !isThrown && !isMelee && i < a.sparkCount;
       spark.visible = useSpark;
       if (!useSpark) return;
       const ang = (i / Math.max(1, a.sparkCount)) * Math.PI * 2 + Math.random();

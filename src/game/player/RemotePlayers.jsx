@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { resolveOutfit, loadoutFromPreset, normalizeLoadout } from './outfits';
 import BulgarianKit, { usesBulgarianKit } from './BulgarianKit';
 import MossadKit, { usesMossadKit } from './MossadKit';
@@ -92,12 +92,13 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
     const wid = r.weaponId || 'm1911';
     if (weaponId !== wid) setWeaponId(wid);
 
-    const loadout = remoteLoadout(r);
     const g = r.outfitGender === 'female' ? 'female' : 'male';
-    const raw = resolveOutfit(loadout);
-    const o = applyGenderLook(raw, g);
-    const key = `${JSON.stringify(loadout)}:${g}`;
+    // Cheap key — avoid JSON.stringify every frame on 4 remote slots.
+    const key = `${r.id}|${r.outfitId || ''}|${r.outfitColor || ''}|${g}|${r.outfitYarmulke ? 1 : 0}|${r.outfitLoadout ? 1 : 0}`;
     if (lastKey.current !== key) {
+      const loadout = remoteLoadout(r);
+      const raw = resolveOutfit(loadout);
+      const o = applyGenderLook(raw, g);
       lastKey.current = key;
       setGender(g);
       const d = bodyDims(g);
@@ -290,7 +291,7 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
 }
 
 export default function RemotePlayers({ hideGun = false }) {
-  const { remotesRef } = useGame();
+  const { remotesRef } = useGameApi();
   if (!remotesRef) return null;
   const slots = [0, 1, 2, 3];
 

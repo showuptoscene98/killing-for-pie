@@ -8,6 +8,7 @@ import { getMap, setActiveMap } from '../map/activeMap';
 import { clearCollisionCache } from './collision';
 import { initWindowState } from './WindowSystem';
 import { createMysteryBoxState } from './MysteryBoxSystem';
+import { createPowerupState } from './PowerupSystem';
 import { loadCamp, saveCamp } from '../camp/campData';
 import { onTransitMapReached } from '../camp/questSystem';
 
@@ -53,23 +54,32 @@ export function rebuildMapRuntime(state, mapId) {
   });
 
   state.mapId = map.id;
+  state.mapRevision = (state.mapRevision || 0) + 1;
   state.rooms = rooms;
   state.doors = doors;
   state.windows = initWindowState();
   state.mysteryBox = createMysteryBoxState();
   state.pies = [];
+  state.powerups = createPowerupState();
   state.repairAcc = 0;
   state.interactPrompt = null;
 
   const spawn = map.PLAYER_SPAWN || { x: 0, y: 0, z: 0 };
-  state.position = {
-    x: spawn.x,
-    y: (spawn.y || 0) + PLAYER.height,
-    z: spawn.z,
-  };
+  // Mutate in place — Player/camera keep the same position object ref
+  if (!state.position) state.position = { x: 0, y: PLAYER.height, z: 0 };
+  state.position.x = spawn.x;
+  state.position.y = (spawn.y || 0) + PLAYER.height;
+  state.position.z = spawn.z;
   state.floorY = spawn.y || 0;
   state.velocityY = 0;
+  state.velocityX = 0;
+  state.velocityZ = 0;
   state.grounded = true;
+  state.slide = null;
+  state.yaw = 0;
+  state.pitch = 0;
+  /** Hold spawn for a beat so movement/collision can't yeet you pre-remount */
+  state._transitLock = 0.55;
 
   return map;
 }

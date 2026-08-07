@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { useCoop } from './CoopContext';
 import {
   createCoopPlayer,
@@ -39,7 +39,7 @@ const SEND_HZ = 20;
 const SNAP_HZ = 16;
 
 export default function CoopSync() {
-  const { stateRef, zombiesRef, remotesRef } = useGame();
+  const { stateRef, zombiesRef, remotesRef } = useGameApi();
   const { sessionRef, players, localName, isHost, joinAsSpectator } = useCoop();
   const accSend = useRef(0);
   const accSnap = useRef(0);
@@ -255,7 +255,9 @@ export default function CoopSync() {
       if (accSend.current >= 1 / SEND_HZ) {
         accSend.current = 0;
         // Outfit blobs are fat — only resend when the loadout actually changes.
-        const outfitKey = `${state.outfitId}|${state.outfitColor}|${state.outfitGender}|${state.outfitYarmulke}|${JSON.stringify(state.outfitLoadout || null)}`;
+        // Avoid stringify of the full loadout blob at 20Hz — fingerprint is enough.
+        const loadout = state.outfitLoadout;
+        const outfitKey = `${state.outfitId}|${state.outfitColor}|${state.outfitGender}|${state.outfitYarmulke}|${loadout ? Object.keys(loadout).length : 0}|${loadout?.body || ''}|${loadout?.torso || ''}`;
         const outfitChanged = outfitKey !== lastOutfitKey.current;
         if (outfitChanged) lastOutfitKey.current = outfitKey;
         const msg = {
@@ -525,6 +527,7 @@ function tickHost({
         .filter((p) => !p.spent)
         .map((p) => ({
           id: p.id,
+          kind: p.kind || 'pie',
           x: p.x,
           y: p.y,
           z: p.z,
@@ -537,6 +540,7 @@ function tickHost({
       totalKills: state.totalKills,
       matchOver: !!state.coopMatchOver,
       mapId: state.mapId,
+      mapRevision: state.mapRevision || 0,
       transitMode: !!state.transitMode,
       transitReached: state.transitReached || [],
     });
@@ -626,6 +630,7 @@ function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
   let mapChanged = false;
   if (msg.mapId && msg.mapId !== state.mapId) {
     rebuildMapRuntime(state, msg.mapId);
+    if (msg.mapRevision != null) state.mapRevision = msg.mapRevision;
     mapChanged = true;
   }
 
@@ -723,6 +728,10 @@ function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
       bossTheme: z.bossTheme || null,
       scale: z.scale || 1,
       radius: z.radius || 0.35,
+      crawling: !!z.crawling,
+      crawlBark: z.crawlBark || null,
+      crawlBarkT: 0,
+      crawlBarkIdx: 0,
     });
   }
 

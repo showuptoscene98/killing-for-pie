@@ -47,10 +47,12 @@ export function createInitialGameState(bonuses = DEFAULT_BONUSES) {
   return {
     status: 'playing',
     mapId: map.id,
+    mapRevision: 0,
     /** 'classic' | 'transit' — set by deploy / createInitial options */
     gameMode: bonuses.gameMode || 'classic',
     transitMode: bonuses.gameMode === 'transit' || !!bonuses.transitMode,
     transitReached: [],
+    _transitLock: 0,
     points: POINTS.starting,
     round: 0,
     roundPhase: 'intermission',

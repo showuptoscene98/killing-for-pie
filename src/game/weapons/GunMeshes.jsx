@@ -70,6 +70,59 @@ function WorldPart({ position, rotation, args, color, geo = 'box', axis = 'z' })
   );
 }
 
+/** Procedural chainsaw — grip at origin, bar along -Z. */
+function ChainsawParts({ Part, scale = 1 }) {
+  const s = scale;
+  return (
+    <group scale={s}>
+      {/* rear handle */}
+      <Part position={[0, -0.02, 0.1]} args={[0.045, 0.07, 0.12]} color="#2a2a2e" />
+      <Part
+        position={[0, 0.04, 0.12]}
+        args={[0.018, 0.018, 0.1, 8]}
+        geo="cyl"
+        axis="z"
+        color="#1a1a1c"
+      />
+      {/* engine body */}
+      <Part position={[0, 0.02, 0.0]} args={[0.1, 0.12, 0.22]} color="#c8a020" />
+      <Part position={[0.02, 0.05, 0.02]} args={[0.08, 0.06, 0.14]} color="#3a3a40" />
+      {/* top handle */}
+      <Part
+        position={[0, 0.12, -0.02]}
+        args={[0.016, 0.016, 0.16, 8]}
+        geo="cyl"
+        axis="z"
+        color="#1e1e22"
+      />
+      <Part position={[0, 0.1, 0.08]} args={[0.04, 0.05, 0.04]} color="#2a2a30" />
+      {/* starter housing + cord eye */}
+      <Part
+        position={[-0.06, 0.02, 0.04]}
+        args={[0.035, 0.035, 0.05, 8]}
+        geo="cyl"
+        axis="x"
+        color="#8a7018"
+      />
+      <Part position={[-0.09, 0.02, 0.04]} args={[0.02, 0.035, 0.02]} color="#e8e0d0" />
+      {/* guide bar */}
+      <Part position={[0, 0.01, -0.28]} args={[0.035, 0.08, 0.42]} color="#6a6e74" />
+      <Part position={[0, 0.01, -0.28]} args={[0.018, 0.055, 0.38]} color="#3a3e44" />
+      {/* tip sprocket */}
+      <Part
+        position={[0, 0.01, -0.5]}
+        args={[0.04, 0.04, 0.03, 10]}
+        geo="cyl"
+        axis="x"
+        color="#8a9098"
+      />
+      {/* chain teeth hints */}
+      <Part position={[0, 0.055, -0.28]} args={[0.012, 0.02, 0.4]} color="#b0b4b8" />
+      <Part position={[0, -0.035, -0.28]} args={[0.012, 0.02, 0.4]} color="#b0b4b8" />
+    </group>
+  );
+}
+
 /** Serration / checkering strips */
 function Serrations({ Part, z0, z1, y, count = 6, color = '#1a1a1c' }) {
   const span = z1 - z0;
@@ -761,6 +814,19 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
         </group>
       );
 
+    case 'questioneer':
+      // Twin chainsaws — right saw ready to throw, left saw riding shotgun.
+      return (
+        <group>
+          <group position={[0.04, 0.0, -0.02]} rotation={[0.05, 0.12, -0.35]}>
+            <ChainsawParts Part={Part} />
+          </group>
+          <group position={[-0.1, -0.02, 0.04]} rotation={[0.2, -0.35, 0.55]}>
+            <ChainsawParts Part={Part} scale={0.92} />
+          </group>
+        </group>
+      );
+
     default:
       return (
         <group>
@@ -782,6 +848,8 @@ const FP_POSE = {
   spatula: { position: [0.04, 0, -0.02], rotation: [0.12, 0.15, -0.4] },
   // Cocked on the right — neck in the fist, base up ready to chop across.
   rakia: { position: [0.05, -0.05, -0.02], rotation: [0.15, 0.55, -1.05] },
+  // Twin saws — tipped for a throw, bars reading forward.
+  questioneer: { position: [0.03, -0.02, -0.04], rotation: [0.18, 0.2, -0.55] },
   olympia: { position: [0.02, 0.02, -0.04], rotation: [0.05, 0.04, 0.02] },
   mp5: { position: [0.02, 0.01, -0.04], rotation: [0.06, 0.06, 0.03] },
   sniper: { position: [0.015, 0.02, -0.1], rotation: [0.03, 0.04, 0.01] },
@@ -845,6 +913,9 @@ export function magRestPose(weaponId) {
       return [0, -0.08, 0.1];
     case 'thundergun':
       return [0, -0.08, 0.14];
+    // Pull-cord T-handle seats on the left starter housing.
+    case 'questioneer':
+      return [-0.12, 0.02, 0.06];
     default:
       return [0, -0.1, 0.04];
   }
@@ -856,7 +927,7 @@ export function magRestPose(weaponId) {
  * hides these at rest.
  */
 export function magIsTransient(weaponId) {
-  return weaponId === 'spatula' || weaponId === 'mosin';
+  return weaponId === 'spatula' || weaponId === 'mosin' || weaponId === 'questioneer';
 }
 
 export function reloadStyle(weaponId) {
@@ -869,6 +940,8 @@ export function reloadStyle(weaponId) {
       return 'break';
     case 'spatula':
       return 'pie';
+    case 'questioneer':
+      return 'cord';
     case 'rakia':
       return 'melee';
     case 'raygun':
@@ -942,6 +1015,8 @@ export function muzzleOffset(weaponId) {
       return [0.04, 0.08, -0.52];
     case 'rakia':
       return [0.02, 0.4, -0.04];
+    case 'questioneer':
+      return [0.04, 0.04, -0.48];
     default:
       return [0.02, 0.05, -0.48];
   }

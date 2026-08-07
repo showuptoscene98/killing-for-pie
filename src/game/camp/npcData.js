@@ -147,9 +147,11 @@ export const HUB_NPCS = [
     id: 'apple',
     name: 'Apple',
     title: "Steve's Dog",
+    // Dog mesh offset on Steve — keep range tight so she doesn't steal Steve's F prompt
     position: [-7.717, 0, -9.505],
     yaw: Math.PI * 0.25,
     interactOnly: true,
+    interactRange: 0.85,
     dialogueId: 'apple',
   },
   {

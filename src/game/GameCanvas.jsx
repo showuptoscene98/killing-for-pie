@@ -1,6 +1,13 @@
-import { Suspense, useCallback, useLayoutEffect } from 'react';
-import { Canvas, useThree } from '@react-three/fiber';
-import { useGame } from './GameContext';
+import {
+  Suspense,
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { useGameApi } from './GameContext';
 import MapWorld from './map/MapWorld';
 import Player from './player/Player';
 import RemotePlayers from './player/RemotePlayers';
@@ -23,9 +30,23 @@ function CameraLayerFix() {
 }
 
 function Scene({ coop }) {
-  const { stateRef, zombiesRef, hud } = useGame();
-  const mapId = hud.mapId || getActiveMap().id;
-  const outdoor = !!getActiveMap().outdoor;
+  const { stateRef, zombiesRef } = useGameApi();
+  const mapKeyRef = useRef('');
+  const [mapKey, setMapKey] = useState(() => {
+    const s = stateRef.current;
+    return `${s.mapId || getActiveMap().id}:${s.mapRevision || 0}`;
+  });
+  const [outdoor, setOutdoor] = useState(() => !!getActiveMap().outdoor);
+
+  // Remount map on transit without subscribing the whole scene to HUD ticks.
+  useFrame(() => {
+    const s = stateRef.current;
+    const next = `${s.mapId || getActiveMap().id}:${s.mapRevision || 0}`;
+    if (next === mapKeyRef.current) return;
+    mapKeyRef.current = next;
+    setMapKey(next);
+    setOutdoor(!!getActiveMap().outdoor);
+  });
 
   const onShoot = useCallback(
     (camera, weaponDef) => {
@@ -62,7 +83,7 @@ function Scene({ coop }) {
         color={DD.candle}
         decay={1.2}
       />
-      <MapWorld key={mapId} />
+      <MapWorld key={mapKey} />
       <ZombieManager />
       <PieProjectiles />
       <Powerups />
@@ -74,7 +95,7 @@ function Scene({ coop }) {
   );
 }
 
-export default function GameCanvas({ coop = false }) {
+function GameCanvas({ coop = false }) {
   return (
     <Canvas
       className="game-canvas"
@@ -99,3 +120,6 @@ export default function GameCanvas({ coop = false }) {
     </Canvas>
   );
 }
+
+// PlayingShell re-renders on HUD ticks — don't reconcile the whole R3F tree.
+export default memo(GameCanvas);

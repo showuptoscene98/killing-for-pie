@@ -2,7 +2,7 @@ import { HUB_NPCS } from './npcData';
 import { getActiveMap } from '../map/activeMap';
 import { INTERACT_RANGE } from '../constants';
 
-const NPC_RANGE = 2.4;
+const NPC_RANGE = 2.2;
 
 /**
  * @returns {{ type: 'npc'|'deploy'|null, id?: string, label: string|null, npcId?: string }}
@@ -16,7 +16,8 @@ export function findHubInteract(px, pz) {
     const dx = px - npc.position[0];
     const dz = pz - npc.position[2];
     const d = Math.hypot(dx, dz);
-    if (d < NPC_RANGE && d < bestDist) {
+    const range = npc.interactRange ?? NPC_RANGE;
+    if (d < range && d < bestDist) {
       bestDist = d;
       best = {
         type: 'npc',

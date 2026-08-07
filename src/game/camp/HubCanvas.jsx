@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef } from 'react';
+import { memo, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -194,7 +194,7 @@ function HubScene({ onInteract, promptRef, controlsEnabled }) {
   );
 }
 
-export default function HubCanvas({ onInteract, promptRef, controlsEnabled }) {
+function HubCanvas({ onInteract, promptRef, controlsEnabled }) {
   const dpr = useMemo(() => Math.min(window.devicePixelRatio || 1, 1), []);
 
   const onCreated = useCallback(({ gl }) => {
@@ -229,3 +229,5 @@ export default function HubCanvas({ onInteract, promptRef, controlsEnabled }) {
     </Canvas>
   );
 }
+
+export default memo(HubCanvas);

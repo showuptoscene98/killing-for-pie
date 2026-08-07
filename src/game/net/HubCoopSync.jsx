@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { useCamp } from '../camp/CampContext';
 import { useCoop } from './CoopContext';
 import { createCoopPlayer, snapshotPlayerNet } from './coopState';
@@ -25,7 +25,7 @@ function placeAtHubSlot(p, slotIndex) {
 
 /** Lightweight pose sync while squad is in the camp hub (lobby / connecting). */
 export default function HubCoopSync() {
-  const { stateRef, remotesRef } = useGame();
+  const { stateRef, remotesRef } = useGameApi();
   const { camp, outfitLoadout } = useCamp();
   const { sessionRef, players, localName, isHost, phase } = useCoop();
   const accSend = useRef(0);

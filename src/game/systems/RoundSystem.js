@@ -4,8 +4,14 @@ import { recordAchievementEvent } from '../camp/campData';
 import { queueAchievementBanners } from '../camp/achievements';
 import { applyTransitIfNeeded } from './transitMode';
 
+/** @returns {{ transitChanged: boolean }} */
 export function tickRound(state, dt, spawnZombie, zombiesRef = null) {
-  if (state.status !== 'playing') return;
+  const result = { transitChanged: false };
+  if (state.status !== 'playing') return result;
+
+  if (state._transitLock > 0) {
+    state._transitLock = Math.max(0, state._transitLock - dt);
+  }
 
   if (state.roundBannerTimer > 0) {
     state.roundBannerTimer -= dt;
@@ -36,6 +42,7 @@ export function tickRound(state, dt, spawnZombie, zombiesRef = null) {
 
       const transit = applyTransitIfNeeded(state, zombiesRef);
       if (transit.changed) {
+        result.transitChanged = true;
         // Transit banner wins this beat; round # still shown after
         state._postTransitBanner = boss
           ? `BOSS ROUND ${state.round}`
@@ -49,7 +56,7 @@ export function tickRound(state, dt, spawnZombie, zombiesRef = null) {
       const { newly } = recordAchievementEvent('round', { round: state.round });
       queueAchievementBanners(state, newly);
     }
-    return;
+    return result;
   }
 
   if (state.roundPhase === 'spawning') {
@@ -76,6 +83,7 @@ export function tickRound(state, dt, spawnZombie, zombiesRef = null) {
     state.roundPhase = 'intermission';
     state.intermissionTimer = ROUND.intermission;
   }
+  return result;
 }
 
 export function onZombieKilled(state) {

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { useGame } from '../GameContext';
+import { useGameApi, useHud } from '../GameContext';
 import { WEAPONS } from '../weapons/weaponDefs';
 
 export default function HUD() {
-  const { hud, stateRef } = useGame();
+  const { stateRef } = useGameApi();
+  const hud = useHud();
   const [aiming, setAiming] = useState(false);
   const spectating =
     hud.coop &&

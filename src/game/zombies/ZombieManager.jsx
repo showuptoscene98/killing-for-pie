@@ -1,12 +1,12 @@
 import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { getActiveMap } from '../map/activeMap';
 import {
   collideEntity,
   buildFrameColliders,
   sampleFloorY,
-  separateFromBossZombies,
+  separateFromZombies as separatePlayerFromZombies,
 } from '../systems/collision';
 import { getClosedDoorColliders } from '../systems/DoorSystem';
 import {
@@ -104,7 +104,50 @@ function bossStyleForMap(map) {
   return { variant: null, bossTheme: 'stone' };
 }
 
-function createZombie(x, z, round, windowId = null, { boss = false } = {}) {
+/** Outward XZ unit from window opening (away from interior). */
+function windowOutward(win) {
+  const fx = win.facing?.[0];
+  const fz = win.facing?.[2];
+  if (fx != null && fz != null && (fx !== 0 || fz !== 0)) {
+    const len = Math.hypot(fx, fz) || 1;
+    // facing points into the room
+    return { x: -fx / len, z: -fz / len };
+  }
+  const dx = (win.outside?.x ?? 0) - (win.inside?.x ?? 0);
+  const dz = (win.outside?.z ?? 0) - (win.inside?.z ?? 0);
+  const len = Math.hypot(dx, dz) || 1;
+  return { x: dx / len, z: dz / len };
+}
+
+/**
+ * Spawn well outside the tear point so approach is a real walk-up,
+ * not a pop-in at the sill.
+ */
+function spawnOutsideApproach(win) {
+  const n = windowOutward(win);
+  const sideX = -n.z;
+  const sideZ = n.x;
+  const dist = 5.8 + Math.random() * 2.8;
+  const lateral = (Math.random() - 0.5) * ((win.width || 2) * 0.85);
+  return {
+    x: win.outside.x + n.x * dist + sideX * lateral,
+    z: win.outside.z + n.z * dist + sideZ * lateral,
+  };
+}
+
+/** Ground while far; ease up to window floorY in the last meters (upper floors). */
+function approachFeetY(win, dist, x, z, prevY) {
+  const baseY = win.floorY ?? 0;
+  const ground = sampleFloorY(x, z, prevY > 0.5 ? 0 : prevY);
+  if (baseY <= 0.15) return ground;
+  const riseStart = 2.4;
+  if (dist >= riseStart) return ground;
+  const t = 1 - dist / riseStart;
+  const ease = t * t * (3 - 2 * t);
+  return ground + (baseY - ground) * ease;
+}
+
+function createZombie(x, z, round, windowId = null, { boss = false, y = 0 } = {}) {
   const map = getActiveMap();
   const style = boss ? bossStyleForMap(map) : null;
   const variant = boss ? style.variant : pickZombieVariant(map);
@@ -116,7 +159,7 @@ function createZombie(x, z, round, windowId = null, { boss = false } = {}) {
     id: nextId++,
     x,
     z,
-    y: 0,
+    y,
     hp,
     maxHp: hp,
     speed,
@@ -143,7 +186,16 @@ function createZombie(x, z, round, windowId = null, { boss = false } = {}) {
     scale: boss ? ROUND.bossScale : 1,
     radius: boss ? ROUND.bossRadius : 0.35,
     attackDamage: boss ? ROUND.bossAttackDamage : ROUND.attackDamage,
+    crawling: false,
+    crawlBark: null,
+    crawlBarkT: 0,
+    crawlBarkIdx: 0,
   };
+}
+
+/** Crawlers drag on their elbows — much slower than bipedal shambling */
+function moveSpeed(z) {
+  return z.crawling ? z.speed * 0.38 : z.speed;
 }
 
 function applySwingDamage(state, target, damage = ROUND.attackDamage) {
@@ -233,16 +285,16 @@ function tickZombieMelee(z, state, target, dist, clampedDt, sameFloor) {
   return true;
 }
 
-/** Keep bosses from overlapping the local player / coop targets. */
+/** Keep zombies from overlapping the local player / coop targets. */
 function resolveBossPlayerBodies(state, zombies, colliders) {
   const feetY =
     state.floorY ?? Math.max(0, (state.position?.y || 0) - PLAYER.height);
   if (state.status === 'playing' || state.status === 'downed') {
-    const next = separateFromBossZombies(
+    const next = separatePlayerFromZombies(
       state.position.x,
       state.position.z,
       zombies,
-      { playerFeetY: feetY, pushBoss: true }
+      { playerFeetY: feetY, pushZombie: true }
     );
     state.position.x = next.x;
     state.position.z = next.z;
@@ -257,9 +309,9 @@ function resolveBossPlayerBodies(state, zombies, colliders) {
       if (!p?.position) continue;
       const tf =
         t.floorY ?? Math.max(0, (p.position.y || 0) - PLAYER.height);
-      const next = separateFromBossZombies(t.x, t.z, zombies, {
+      const next = separatePlayerFromZombies(t.x, t.z, zombies, {
         playerFeetY: tf,
-        pushBoss: true,
+        pushZombie: true,
       });
       t.x = next.x;
       t.z = next.z;
@@ -374,7 +426,7 @@ function pickChaseTarget(z, state) {
 }
 
 export default function ZombieManager() {
-  const { stateRef, zombiesRef } = useGame();
+  const { stateRef, zombiesRef, notify } = useGameApi();
   const spawnCooldown = useRef(0);
 
   const slots = useMemo(
@@ -399,15 +451,13 @@ export default function ZombieManager() {
         return db - da;
       });
       const pick = sorted[Math.floor(Math.random() * Math.min(3, sorted.length))];
-      const j = () => (Math.random() - 0.5) * 0.35;
+      const spawn = spawnOutsideApproach(pick);
+      const spawnY = sampleFloorY(spawn.x, spawn.z, 0);
       zombiesRef.current.push(
-        createZombie(
-          pick.outside.x + j(),
-          pick.outside.z + j(),
-          state.round,
-          pick.id,
-          { boss: asBoss }
-        )
+        createZombie(spawn.x, spawn.z, state.round, pick.id, {
+          boss: asBoss,
+          y: spawnY,
+        })
       );
       play('zombieMoan', { volume: asBoss ? 1 : 0.85 });
       return true;
@@ -463,7 +513,7 @@ export default function ZombieManager() {
     ) {
       state.status = 'playing';
     }
-    tickRound(state, clampedDt, gatedSpawn, zombiesRef);
+    const roundResult = tickRound(state, clampedDt, gatedSpawn, zombiesRef);
     if (
       state.coop &&
       state.isHost &&
@@ -471,6 +521,10 @@ export default function ZombieManager() {
       !state.coopMatchOver
     ) {
       state.status = savedStatus;
+    }
+    if (roundResult?.transitChanged) {
+      // Remount MapWorld immediately — don't wait for the 150ms hud poll
+      notify?.();
     }
 
     const doors = getClosedDoorColliders(state);
@@ -503,7 +557,7 @@ export default function ZombieManager() {
 
       const win = z.windowId ? getWindowById(z.windowId) : null;
 
-      // Approach outside of window (no collision — outside worldBound)
+      // Approach: walk from fog → tear point on the ground (no wall collision outside)
       if (z.phase === 'approach' || z.phase === 'tear') {
         if (!win) {
           z.phase = 'chase';
@@ -515,14 +569,16 @@ export default function ZombieManager() {
         const dx = tx - z.x;
         const dz = tz - z.z;
         const dist = Math.hypot(dx, dz);
-        z.yaw = win.yaw;
-        z.y = win.floorY ?? 0;
+        const baseY = win.floorY ?? 0;
 
-        if (dist > 0.12 && z.phase === 'approach') {
-          const spd = z.speed * 0.85;
+        if (dist > 0.15 && z.phase === 'approach') {
+          const spd = moveSpeed(z) * 0.9;
           z.x += (dx / dist) * spd * clampedDt;
           z.z += (dz / dist) * spd * clampedDt;
-          z.walkPhase += clampedDt * 7;
+          z.yaw = Math.atan2(dx, dz);
+          const nextDist = Math.hypot(tx - z.x, tz - z.z);
+          z.y = approachFeetY(win, nextDist, z.x, z.z, z.y || 0);
+          z.walkPhase += clampedDt * (z.crawling ? 9 : 7);
           z.moving = true;
           z.stepAcc = (z.stepAcc || 0) + clampedDt;
           if (z.stepAcc >= 0.45) {
@@ -532,11 +588,17 @@ export default function ZombieManager() {
         } else {
           z.x = tx;
           z.z = tz;
+          z.y = baseY;
+          z.yaw = win.yaw;
           z.phase = 'tear';
           z.moving = false;
         }
 
         if (z.phase === 'tear') {
+          z.x = tx;
+          z.z = tz;
+          z.y = baseY;
+          z.yaw = win.yaw;
           const boardsLeft = state.windows[win.id]?.boards ?? 0;
           const isTearer =
             !tearerByWindow[win.id] || tearerByWindow[win.id] === z.id;
@@ -575,7 +637,8 @@ export default function ZombieManager() {
         z.x = win.outside.x + (win.inside.x - win.outside.x) * e;
         z.z = win.outside.z + (win.inside.z - win.outside.z) * e;
         const baseY = win.floorY ?? 0;
-        z.y = baseY + Math.sin(e * Math.PI) * 0.55;
+        // Vault arc through the opening — stay on the window floor plane, not mid-air roam
+        z.y = baseY + Math.sin(e * Math.PI) * 0.45;
         z.yaw = win.yaw;
         z.walkPhase += clampedDt * 9;
         z.moving = true;
@@ -583,7 +646,7 @@ export default function ZombieManager() {
         if (t >= 1) {
           z.x = win.inside.x;
           z.z = win.inside.z;
-          z.y = baseY;
+          z.y = sampleFloorY(z.x, z.z, baseY);
           z.phase = 'chase';
           z.windowId = null;
           z.moving = true;
@@ -610,8 +673,9 @@ export default function ZombieManager() {
       const engage = z.boss ? ROUND.bossAttackEngage : ROUND.attackEngage;
 
       if (!swinging && dist > engage) {
-        const nx = z.x + (dx / dist) * z.speed * clampedDt;
-        const nz = z.z + (dz / dist) * z.speed * clampedDt;
+        const spd = moveSpeed(z);
+        const nx = z.x + (dx / dist) * spd * clampedDt;
+        const nz = z.z + (dz / dist) * spd * clampedDt;
         const feetY = z.y || 0;
         const resolved = collideEntity(nx, nz, bodyR, colliders, feetY);
         z.x = resolved.x;
@@ -619,7 +683,7 @@ export default function ZombieManager() {
         z.y = resolved.y;
         separateFromZombies(z, zombies, colliders);
         z.moving = true;
-        z.walkPhase += clampedDt * (5.5 + z.speed * 1.2);
+        z.walkPhase += clampedDt * (z.crawling ? 8.5 + spd * 1.6 : 5.5 + z.speed * 1.2);
 
         z.stepAcc = (z.stepAcc || 0) + clampedDt;
         if (z.stepAcc >= 0.42 && spat && spat.dist < 18) {

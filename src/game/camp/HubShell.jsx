@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useCamp } from './CampContext';
-import { GameProvider, useGame } from '../GameContext';
+import { GameProvider, useGameApi, useHud } from '../GameContext';
 import { useCoop } from '../net/CoopContext';
 import { isRoomCode, MAX_COOP_PLAYERS, normalizeRoomCode, clearInviteFromUrl } from '../net/roomCode';
 import HubCanvas from './HubCanvas';
@@ -42,7 +42,7 @@ import {
 import { PLAYER } from '../constants';
 
 function HubInteractPrompt() {
-  const { hud } = useGame();
+  const hud = useHud();
   const label = hud?.interactPrompt?.label;
   if (!label) return null;
   return <div className="interact-prompt hub-prompt">{label}</div>;
@@ -811,7 +811,7 @@ function HubShellInner({
     talkNpc,
     refreshCamp,
   } = useCamp();
-  const { stateRef } = useGame();
+  const { stateRef } = useGameApi();
   const {
     phase,
     error: coopError,

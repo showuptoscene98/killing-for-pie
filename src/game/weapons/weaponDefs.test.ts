@@ -95,8 +95,15 @@ describe('viewmodel lookups', () => {
   it('hides reload-only props at rest, but keeps real magazines visible', () => {
     expect(magIsTransient('mosin')).toBe(true);
     expect(magIsTransient('spatula')).toBe(true);
+    expect(magIsTransient('questioneer')).toBe(true);
     expect(magIsTransient('ak47')).toBe(false);
     expect(magIsTransient('m1911')).toBe(false);
+  });
+
+  it('uses a cord-pull reload for the Questioneer', () => {
+    expect(reloadStyle('questioneer')).toBe('cord');
+    expect(WEAPONS.questioneer.projectile).toBe('chainsaw');
+    expect(WEAPONS.questioneer.magSize).toBe(2);
   });
 
   it('drives the bolt reload style only for manual actions', () => {

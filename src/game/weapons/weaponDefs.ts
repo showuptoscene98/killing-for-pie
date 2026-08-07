@@ -9,7 +9,8 @@ export type WeaponId =
   | 'raygun'
   | 'thundergun'
   | 'spatula'
-  | 'rakia';
+  | 'rakia'
+  | 'questioneer';
 
 export interface WeaponDef {
   id: WeaponId;
@@ -49,7 +50,7 @@ export interface WeaponDef {
   meleeRange?: number;
   meleeKnockback?: number;
 
-  projectile?: 'pie';
+  projectile?: 'pie' | 'chainsaw';
   projectileSpeed?: number;
   projectileGravity?: number;
   splashRadius?: number;
@@ -200,6 +201,8 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     mystery: true,
     penetrate: 4,
     penetrateFalloff: 0.82,
+    /** Green pie-blast around primary pierce hits */
+    splash: 2.4,
   },
   thundergun: {
     id: 'thundergun',
@@ -254,6 +257,24 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     meleeRange: 2.5,
     meleeKnockback: 4.2,
   },
+  questioneer: {
+    id: 'questioneer',
+    name: 'Questioneer',
+    damage: 110,
+    headMultiplier: 1.35,
+    fireRate: 0.75,
+    magSize: 2,
+    reserve: 16,
+    reloadTime: 2.6,
+    spread: 0.012,
+    recoil: 0.08,
+    automatic: false,
+    mystery: true,
+    projectile: 'chainsaw',
+    projectileSpeed: 20,
+    projectileGravity: 9,
+    splashRadius: 2.8,
+  },
 };
 
 /** Pool the mystery box can roll (excludes starting pistol) */
@@ -268,6 +289,7 @@ export const MYSTERY_BOX_POOL: WeaponId[] = [
   'thundergun',
   'spatula',
   'rakia',
+  'questioneer',
 ];
 
 export const MYSTERY_BOX_COST = 950;

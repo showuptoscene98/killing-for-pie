@@ -122,6 +122,8 @@ export function snapshotZombieNet(z) {
     bossTheme: z.bossTheme || null,
     scale: z.scale || 1,
     radius: z.radius || 0.35,
+    crawling: !!z.crawling,
+    crawlBark: z.crawling ? z.crawlBark || null : null,
   };
 }
 

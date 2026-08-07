@@ -1,11 +1,13 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import Toon from '../style/Toon';
 import { DD } from '../style/theme';
 import { ROUND } from '../constants';
 import { BodyPart, BodyHead, BodyStub, useBodyStyle } from '../style/BodyParts';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { lerpAngle } from '../net/smoothPose';
+import { pickCrawlBark } from '../weapons/WeaponSystem';
 
 const DEFAULT_PALETTE = {
   body: DD.sick,
@@ -223,7 +225,7 @@ function gaitFromSeed(seed) {
 
 /** Jointed low-poly zombie — staggered limbs, limp/reach variance */
 export default function ZombieModel({ zombiesRef, index }) {
-  const { stateRef } = useGame();
+  const { stateRef } = useGameApi();
   const root = useRef();
   const torso = useRef();
   const head = useRef();
@@ -291,11 +293,14 @@ export default function ZombieModel({ zombiesRef, index }) {
       pyaw = z._ryaw;
     }
 
-    const y = py - sink;
+    const crawling = !!z.crawling && !z.dead;
+    const y = py - sink - (crawling ? 0.22 * sc : 0);
     root.current.position.set(px, y, pz);
     root.current.scale.setScalar(sc);
     root.current.rotation.order = 'YXZ';
-    root.current.rotation.set(z.dead ? Math.PI / 2 : 0, pyaw, 0);
+    // Dead tip onto back; crawlers tip onto their belly and elbow-drag
+    const pitch = z.dead ? Math.PI / 2 : crawling ? 1.22 : 0;
+    root.current.rotation.set(pitch, pyaw, 0);
 
     const pal = paletteFor(z);
     const seed = z.variantSeed ?? z.id ?? 0;
@@ -336,6 +341,16 @@ export default function ZombieModel({ zombiesRef, index }) {
 
     if (z.dead) return;
 
+    // Host/client: cycle whimsical crawler barks
+    if (crawling) {
+      z.crawlBarkT = (z.crawlBarkT || 0) + Math.max(0, dt);
+      if (!z.crawlBark || z.crawlBarkT > 4.8) {
+        z.crawlBarkT = 0;
+        z.crawlBarkIdx = (z.crawlBarkIdx || 0) + 1;
+        z.crawlBark = pickCrawlBark(z);
+      }
+    }
+
     const phase = (z.walkPhase || 0) * gait.stride;
     const climbing = z.phase === 'climb';
     const tearing = z.phase === 'tear';
@@ -363,8 +378,31 @@ export default function ZombieModel({ zombiesRef, index }) {
     let rElbowExtra = 0;
     let lArmZ = 0;
     let rArmZ = 0;
+    let crawlLegs = false;
 
-    if (attacking) {
+    if (crawling && !climbing) {
+      // Army-crawl: arms haul the torso, legs flop uselessly behind
+      crawlLegs = true;
+      const haul = moving ? 1 : 0.35;
+      hipAmp = 0.08;
+      kneeAmp = 0.12;
+      armAmp = 0.95 * gait.armAmp * haul;
+      elbowAmp = 0.85;
+      reachL = 1.35 + Math.sin(phase) * 0.55 * haul;
+      reachR = 1.35 + Math.sin(phase + Math.PI) * 0.55 * haul;
+      bob = Math.abs(Math.sin(phase)) * 0.03 * haul;
+      hunch = 0.05;
+      sway = Math.sin(phase * 0.5) * 0.08;
+      twist = Math.sin(phase) * 0.12 * haul;
+      headNod = 0.15 + Math.sin(phase * 1.4) * 0.1;
+      headTilt = sway * 0.6;
+      lArmSwing = 0;
+      rArmSwing = 0;
+      lElbowExtra = 0.55 + Math.max(0, Math.sin(phase)) * 0.45 * haul;
+      rElbowExtra = 0.55 + Math.max(0, Math.sin(phase + Math.PI)) * 0.45 * haul;
+      lArmZ = 0.55;
+      rArmZ = -0.55;
+    } else if (attacking) {
       const windup = ROUND.attackWindup;
       const recover = ROUND.attackRecover;
       const t = z.attackT;
@@ -453,28 +491,36 @@ export default function ZombieModel({ zombiesRef, index }) {
     const sin = Math.sin(phase);
     const kneePhase = phase - gait.kneeLag;
 
-    const lHip = sin * hipAmp * limpMulL;
-    const rHip = -sin * hipAmp * limpMulR;
-    const lKnee =
+    let lHip = sin * hipAmp * limpMulL;
+    let rHip = -sin * hipAmp * limpMulR;
+    let lKnee =
       Math.max(0, Math.sin(kneePhase)) * kneeAmp * limpMulL +
       (gait.limpLeft ? 0.2 : 0.05);
-    const rKnee =
+    let rKnee =
       Math.max(0, Math.sin(kneePhase + Math.PI)) * kneeAmp * limpMulR +
       (gait.limpLeft ? 0.05 : 0.18);
 
+    if (crawlLegs) {
+      // Legs trail limp behind the belly-slide
+      lHip = -0.55 + Math.sin(phase * 0.7) * 0.08;
+      rHip = -0.62 + Math.sin(phase * 0.7 + 1.1) * 0.08;
+      lKnee = 0.15 + Math.abs(Math.sin(phase * 0.5)) * 0.1;
+      rKnee = 0.18 + Math.abs(Math.sin(phase * 0.5 + 0.8)) * 0.1;
+    }
+
     if (leftThigh.current) {
       leftThigh.current.rotation.x = lHip;
-      leftThigh.current.rotation.z = moving ? 0.04 : 0.02;
+      leftThigh.current.rotation.z = crawlLegs ? 0.12 : moving ? 0.04 : 0.02;
     }
     if (rightThigh.current) {
       rightThigh.current.rotation.x = rHip;
-      rightThigh.current.rotation.z = moving ? -0.04 : -0.02;
+      rightThigh.current.rotation.z = crawlLegs ? -0.12 : moving ? -0.04 : -0.02;
     }
     if (leftShin.current) leftShin.current.rotation.x = lKnee;
     if (rightShin.current) rightShin.current.rotation.x = rKnee;
 
     const drop = gait.shoulderDrop;
-    if (!attacking) {
+    if (!attacking && !crawlLegs) {
       lArmSwing = -sin * armAmp * (gait.reachRight ? 0.45 : 1);
       rArmSwing = sin * armAmp * (gait.reachRight ? 1 : 0.45);
       lArmZ = 0.22 + drop * 0.3;
@@ -522,6 +568,7 @@ export default function ZombieModel({ zombiesRef, index }) {
 
   return (
     <group ref={root} visible={false}>
+      <CrawlerBark zombiesRef={zombiesRef} index={index} />
       <group ref={torso} key={style}>
         <BodyPart
           position={[0, 1.02, 0]}
@@ -829,5 +876,69 @@ export default function ZombieModel({ zombiesRef, index }) {
         </group>
       </group>
     </group>
+  );
+}
+
+/** Comic speech bubble floating above a kneeless horror */
+function CrawlerBark({ zombiesRef, index }) {
+  const [text, setText] = useState('');
+  const [show, setShow] = useState(false);
+
+  useFrame(() => {
+    const z = zombiesRef.current[index];
+    const on = !!(z && !z.dead && z.crawling && z.crawlBark);
+    if (!on) {
+      if (show) setShow(false);
+      return;
+    }
+    if (!show) setShow(true);
+    if (text !== z.crawlBark) setText(z.crawlBark);
+  });
+
+  if (!show || !text) return null;
+
+  return (
+    <Html
+      position={[0, 0.95, 0.35]}
+      center
+      distanceFactor={9}
+      style={{ pointerEvents: 'none' }}
+      zIndexRange={[20, 0]}
+    >
+      <div
+        style={{
+          position: 'relative',
+          fontFamily: '"Comic Sans MS", "Chalkboard SE", "Segoe Print", cursive',
+          fontSize: 12,
+          fontWeight: 700,
+          color: '#2a1810',
+          background: 'rgba(255, 248, 220, 0.94)',
+          border: '2px solid #2a1810',
+          borderRadius: 10,
+          padding: '5px 9px',
+          maxWidth: 180,
+          textAlign: 'center',
+          lineHeight: 1.25,
+          boxShadow: '2px 3px 0 rgba(0,0,0,0.35)',
+          whiteSpace: 'normal',
+          transform: 'translateY(-8px)',
+        }}
+      >
+        {text}
+        <div
+          style={{
+            position: 'absolute',
+            left: '50%',
+            bottom: -8,
+            width: 12,
+            height: 12,
+            background: 'rgba(255, 248, 220, 0.94)',
+            borderRight: '2px solid #2a1810',
+            borderBottom: '2px solid #2a1810',
+            transform: 'translateX(-50%) rotate(45deg)',
+          }}
+        />
+      </div>
+    </Html>
   );
 }

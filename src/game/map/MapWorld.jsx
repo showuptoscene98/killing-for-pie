@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { getActiveMap } from './activeMap';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import { BARRICADE } from '../constants';
 import Toon from '../style/Toon';
 import { DD } from '../style/theme';
@@ -388,10 +388,8 @@ function WallBuyMesh({ wb }) {
 }
 
 function MysteryBoxMesh({ boxDef }) {
-  const { stateRef, hud } = useGame();
+  const { stateRef } = useGameApi();
   const lid = useRef();
-  void hud.round;
-  void hud.interactPrompt;
 
   useFrame((_, dt) => {
     const box = stateRef.current.mysteryBox;
@@ -1408,7 +1406,7 @@ function Baseboards({ bound = 14, outdoor = false }) {
 }
 
 function WindowMesh({ win }) {
-  const { stateRef } = useGame();
+  const { stateRef } = useGameApi();
   const boardRefs = useRef([]);
   const maxBoards = BARRICADE.maxBoards;
   const map = getActiveMap();
@@ -1851,10 +1849,35 @@ function Rubble({ position }) {
   );
 }
 
+function doorsRoomsKey(state, map) {
+  let key = '';
+  const doors = map.DOORS || [];
+  for (let i = 0; i < doors.length; i++) {
+    const d = doors[i];
+    if (state.doors[d.id]?.open) key += `d${d.id},`;
+  }
+  const rooms = state.rooms || {};
+  for (const id in rooms) {
+    if (rooms[id]?.open) key += `r${id},`;
+  }
+  return key;
+}
+
 export default function MapWorld() {
-  const { stateRef, hud } = useGame();
+  const { stateRef } = useGameApi();
   const map = getActiveMap();
   const theme = map.theme || 'stone';
+  const openKeyRef = useRef('');
+  const [openKey, setOpenKey] = useState(() =>
+    doorsRoomsKey(stateRef.current, map)
+  );
+
+  useFrame(() => {
+    const next = doorsRoomsKey(stateRef.current, map);
+    if (next === openKeyRef.current) return;
+    openKeyRef.current = next;
+    setOpenKey(next);
+  });
 
   const doorOpenMap = useMemo(() => {
     const s = stateRef.current;
@@ -1863,8 +1886,7 @@ export default function MapWorld() {
       open[d.id] = s.doors[d.id]?.open;
     });
     return open;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hud.points, hud.round, hud.interactPrompt, map.id]);
+  }, [openKey, map, stateRef]);
 
   const roomOpen = useMemo(() => {
     const s = stateRef.current;
@@ -1873,8 +1895,7 @@ export default function MapWorld() {
       open[id] = s.rooms[id].open;
     });
     return open;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hud.points, hud.round, map.id]);
+  }, [openKey, map, stateRef]);
 
   const floors = useMemo(() => map.FLOORS, [map]);
 

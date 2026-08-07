@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useGame } from '../GameContext';
+import { useGameApi } from '../GameContext';
 import {
   tickPowerups,
   POWERUP_META,
@@ -68,7 +68,7 @@ function DropMesh({ stateRef, index }) {
 
 /** Floating CoD-style powerup drops + timer/pickup tick */
 export default function Powerups() {
-  const { stateRef, zombiesRef } = useGame();
+  const { stateRef, zombiesRef } = useGameApi();
 
   useFrame((_, dt) => {
     const state = stateRef.current;
