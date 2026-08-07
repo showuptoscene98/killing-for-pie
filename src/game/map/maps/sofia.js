@@ -239,6 +239,15 @@ const WALLBUYS = [
     rotation: [0, Math.PI, 0],
     room: 'north',
   },
+  {
+    id: 'wb_mosin',
+    weaponId: 'mosin',
+    // East wall x=15, T=0.4 → inner face 14.8. Lower segment spans z -15.2→0,
+    // so z=-5 is solid wall and sits just past the flats gate.
+    position: [14.8, 1.45, -5],
+    rotation: [0, -Math.PI / 2, 0],
+    room: 'east',
+  },
 ];
 
 const SPAWN_POINTS = [

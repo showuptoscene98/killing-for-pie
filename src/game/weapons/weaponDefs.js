@@ -11,7 +11,6 @@ export const WEAPONS = {
     spread: 0.012,
     recoil: 0.035,
     automatic: false,
-    view: 'pistol',
   },
   m14: {
     id: 'm14',
@@ -27,7 +26,6 @@ export const WEAPONS = {
     automatic: false,
     wallCost: 500,
     ammoCost: 250,
-    view: 'long',
   },
   mp5: {
     id: 'mp5',
@@ -43,7 +41,6 @@ export const WEAPONS = {
     automatic: true,
     wallCost: 1000,
     ammoCost: 500,
-    view: 'smg',
   },
   olympia: {
     id: 'olympia',
@@ -60,7 +57,6 @@ export const WEAPONS = {
     pellets: 6,
     wallCost: 1200,
     ammoCost: 600,
-    view: 'shotgun',
   },
   sniper: {
     id: 'sniper',
@@ -82,7 +78,35 @@ export const WEAPONS = {
     penetrateFalloff: 0.72,
     wallCost: 1500,
     ammoCost: 750,
-    view: 'long',
+  },
+  mosin: {
+    id: 'mosin',
+    name: 'Mosin 91/30',
+    damage: 285,
+    headMultiplier: 3.6,
+    fireRate: 1.55,
+    magSize: 5,
+    reserve: 35,
+    reloadTime: 3.5,
+    // Brutal from the hip — this thing is meant to be shouldered.
+    spread: 0.058,
+    adsSpread: 0,
+    adsFov: 11,
+    adsSens: 0.24,
+    recoil: 0.17,
+    automatic: false,
+    /**
+     * Manual action: the viewmodel works the bolt over the last boltCycleTime
+     * seconds of the fireRate cooldown, so the shot leaves a beat of recoil
+     * settle before the hands move. Firing is already gated by fireCooldown, so
+     * the animation lands exactly as the rifle becomes ready again.
+     */
+    boltAction: true,
+    boltCycleTime: 1.15,
+    penetrate: 5,
+    penetrateFalloff: 0.85,
+    wallCost: 1800,
+    ammoCost: 900,
   },
 
   // —— Mystery Box only ——
@@ -99,7 +123,6 @@ export const WEAPONS = {
     recoil: 0.032,
     automatic: true,
     mystery: true,
-    view: 'long',
   },
   raygun: {
     id: 'raygun',
@@ -116,7 +139,6 @@ export const WEAPONS = {
     mystery: true,
     penetrate: 4,
     penetrateFalloff: 0.82,
-    view: 'ray',
   },
   thundergun: {
     id: 'thundergun',
@@ -134,7 +156,6 @@ export const WEAPONS = {
     splash: 3.5,
     penetrate: 5,
     penetrateFalloff: 0.88,
-    view: 'shotgun',
   },
   spatula: {
     id: 'spatula',
@@ -153,7 +174,6 @@ export const WEAPONS = {
     projectileSpeed: 22,
     projectileGravity: 12,
     splashRadius: 2.4,
-    view: 'spatula',
   },
   rakia: {
     id: 'rakia',
@@ -171,7 +191,6 @@ export const WEAPONS = {
     melee: true,
     meleeRange: 2.35,
     meleeKnockback: 3.8,
-    view: 'rakia',
   },
 };
 
@@ -181,6 +200,7 @@ export const MYSTERY_BOX_POOL = [
   'mp5',
   'olympia',
   'sniper',
+  'mosin',
   'ak47',
   'raygun',
   'thundergun',

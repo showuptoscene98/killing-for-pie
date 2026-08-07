@@ -565,7 +565,7 @@ function tryFire(state, camera, zombiesRef, onShoot, dt, { coopClient, session }
   if (def.melee) play('meleeSwing');
   else if (def.projectile === 'pie') play('pieThrow');
   else if (def.pellets) play('gunFireShotgun');
-  else if (def.id === 'sniper') play('gunFireSniper');
+  else if (def.id === 'sniper' || def.id === 'mosin') play('gunFireSniper');
   else if (def.id === 'ak47') play('gunFireAk');
   else if (def.automatic) play('gunFireAuto');
   else play('gunFire');

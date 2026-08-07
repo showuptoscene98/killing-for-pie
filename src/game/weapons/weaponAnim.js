@@ -198,6 +198,42 @@ export const GUN_ANIM = {
     lightIntensity: 6.5,
   }),
 
+  /**
+   * Heaviest shoulder-fired kick in the game. boltKick stays 0 on purpose: the
+   * viewmodel drives this bolt from the fire cooldown, so letting slideKick push
+   * it too would double up on the same group.
+   */
+  mosin: profile({
+    bobIdleAmp: 0.0035,
+    bobMoveAmp: 0.013,
+    bobIdleRate: 2.9,
+    bobMoveRate: 7.2,
+    bobXBias: 0.5,
+    swayAmp: 0.002,
+    swayRate: 0.7,
+    swayRoll: 0.005,
+    kickScale: 7.0,
+    kickBase: 0.085,
+    kickDecay: 0.0002,
+    kickPitch: 1.6,
+    kickYaw: -0.14,
+    kickRoll: -0.12,
+    kickBack: 0.24,
+    kickUp: 0.035,
+    boltKick: 0,
+    tipScale: 0.6,
+    twistScale: 0.55,
+    dropScale: 0.8,
+    slapScale: 0.75,
+    magDropScale: 1,
+    flashScale: 1.45,
+    flashColor: '#fff6cc',
+    coneColor: '#ff6e00',
+    lightColor: '#ffa040',
+    lightIntensity: 7.5,
+    sparkCount: 4,
+  }),
+
   ak47: profile({
     bobIdleAmp: 0.009,
     bobMoveAmp: 0.022,

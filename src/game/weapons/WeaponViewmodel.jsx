@@ -7,7 +7,13 @@ import { resolveOutfit } from '../player/outfits';
 import { usesBulgarianKit } from '../player/BulgarianKit';
 import { WEAPONS } from './weaponDefs';
 import { getGunAnim } from './weaponAnim';
-import { FpGun, muzzleOffset, magRestPose, reloadStyle } from './GunMeshes';
+import {
+  FpGun,
+  muzzleOffset,
+  magRestPose,
+  reloadStyle,
+  magIsTransient,
+} from './GunMeshes';
 
 /**
  * FP hands + gun via drei Hud (isolated overlay scene).
@@ -30,23 +36,28 @@ const VmMat = forwardRef(function VmMat({ color, opacity = 1 }, ref) {
   );
 });
 
-function Part({ position, rotation, args, color, geo = 'box', opacity }) {
+/**
+ * Unlike GunMeshes, cylinders here default to Y-up: the limb meshes are posed
+ * with their own rotations and expect the raw geometry axis. Bore-aligned parts
+ * (loose shells, a stripper clip) pass axis="z".
+ */
+const AXIS_TILT = { x: [0, 0, Math.PI / 2], y: null, z: [Math.PI / 2, 0, 0] };
+
+function Part({ position, rotation, args, color, geo = 'box', axis = 'y', opacity }) {
+  const tilt = geo === 'cyl' ? AXIS_TILT[axis] : null;
   return (
-    <mesh
-      position={position}
-      rotation={rotation}
-      renderOrder={1000}
-      frustumCulled={false}
-    >
-      {geo === 'cyl' ? (
-        <cylinderGeometry args={args} />
-      ) : geo === 'sphere' ? (
-        <sphereGeometry args={args} />
-      ) : (
-        <boxGeometry args={args} />
-      )}
-      <VmMat color={color} opacity={opacity} />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      <mesh rotation={tilt ?? undefined} renderOrder={1000} frustumCulled={false}>
+        {geo === 'cyl' ? (
+          <cylinderGeometry args={args} />
+        ) : geo === 'sphere' ? (
+          <sphereGeometry args={args} />
+        ) : (
+          <boxGeometry args={args} />
+        )}
+        <VmMat color={color} opacity={opacity} />
+      </mesh>
+    </group>
   );
 }
 
@@ -193,16 +204,44 @@ function MagMesh({ weaponId }) {
           position={[-0.025, 0, 0]}
           args={[0.022, 0.022, 0.07, 8]}
           geo="cyl"
+          axis="z"
           color="#c8b070"
         />
         <Part
           position={[0.025, 0, 0]}
           args={[0.022, 0.022, 0.07, 8]}
           geo="cyl"
+          axis="z"
           color="#c8b070"
         />
         <Part position={[-0.025, 0, 0.04]} args={[0.026, 0.01, 0.026]} color="#8a6030" />
         <Part position={[0.025, 0, 0.04]} args={[0.026, 0.01, 0.026]} color="#8a6030" />
+      </group>
+    );
+  }
+  if (weaponId === 'mosin') {
+    // Five rounds held in a steel stripper clip.
+    return (
+      <group>
+        <Part position={[0, -0.012, 0.01]} args={[0.062, 0.012, 0.03]} color="#6e6a62" />
+        {[-0.024, -0.012, 0, 0.012, 0.024].map((x, i) => (
+          <group key={i}>
+            <Part
+              position={[x, 0.012, -0.01]}
+              args={[0.0055, 0.0055, 0.055, 6]}
+              geo="cyl"
+              axis="z"
+              color="#b08a3c"
+            />
+            <Part
+              position={[x, 0.012, -0.045]}
+              args={[0.005, 0.0022, 0.018, 6]}
+              geo="cyl"
+              axis="z"
+              color="#8a6a28"
+            />
+          </group>
+        ))}
       </group>
     );
   }
@@ -319,6 +358,8 @@ function evalReload(style, r, weaponId, anim) {
     slide: 0,
     breakAngle: 0,
     bolt: 0,
+    /** Bolt handle rotation about the bore, radians. Manual actions only. */
+    boltLift: 0,
     charge: 0,
     slap: 0,
   };
@@ -407,6 +448,35 @@ function evalReload(style, r, weaponId, anim) {
     out.leftX = swap * 0.08;
     out.leftPitch = swap * 0.5;
     out.slap = pulse(0.78, 0.95, r) * 0.2;
+  } else if (style === 'bolt') {
+    // Mosin — lift and haul the bolt open, thumb a stripper clip down into the
+    // fixed magazine, flick the empty clip away, shove the bolt home.
+    const tipUp = smoothstep(0.0, 0.12, r) * (1 - smoothstep(0.9, 1, r));
+    out.tip = tipUp * 0.5;
+    out.twist = tipUp * -0.5;
+    out.roll = tipUp * 0.1;
+    out.drop = tipUp * 0.14;
+    out.pull = tipUp * 0.03;
+
+    out.boltLift = smoothstep(0.0, 0.1, r) * (1 - smoothstep(0.74, 0.9, r)) * 1.15;
+    out.bolt = smoothstep(0.06, 0.2, r) * (1 - smoothstep(0.64, 0.82, r)) * 0.13;
+
+    const raise = smoothstep(0.18, 0.36, r);
+    const press = smoothstep(0.42, 0.58, r);
+    const clipGone = smoothstep(0.58, 0.64, r);
+    out.magY = (1 - raise) * 0.15 - press * 0.05;
+    out.magX = (1 - raise) * 0.06;
+    out.magRotX = (1 - raise) * -0.55;
+    out.magRotZ = (1 - raise) * 0.3;
+    out.magVis = raise * (1 - clipGone);
+    out.magScale = 0.9 + raise * 0.1;
+
+    out.leftX = raise * 0.05 * (1 - clipGone);
+    out.leftY = -raise * 0.1 + press * 0.06;
+    out.leftZ = -raise * 0.05 - smoothstep(0.66, 0.8, r) * 0.05;
+    out.leftPitch = raise * 0.5 + press * 0.25;
+    out.leftYaw = -raise * 0.2;
+    out.slap = pulse(0.82, 0.96, r) * 0.2;
   } else if (style === 'cell') {
     // Ray / Crust — energy cell pull with spin; thundergun is heavier
     const heavy = weaponId === 'thundergun';
@@ -546,6 +616,7 @@ function ViewmodelScene() {
   const flashPos = useMemo(() => muzzleOffset(weaponId), [weaponId]);
   const magRest = useMemo(() => magRestPose(weaponId), [weaponId]);
   const style = useMemo(() => reloadStyle(weaponId), [weaponId]);
+  const transientMag = useMemo(() => magIsTransient(weaponId), [weaponId]);
   const anim = useMemo(() => getGunAnim(weaponId), [weaponId]);
   const magRestRef = useRef(magRest);
   magRestRef.current = magRest;
@@ -569,7 +640,10 @@ function ViewmodelScene() {
     });
     if (slideRef.current) slideRef.current.position.set(0, 0, 0);
     if (breakRef.current) breakRef.current.rotation.set(0, 0, 0);
-    if (boltRef.current) boltRef.current.position.set(0, 0, 0);
+    if (boltRef.current) {
+      boltRef.current.position.set(0, 0, 0);
+      boltRef.current.rotation.set(0, 0, 0);
+    }
     if (chargeRef.current) chargeRef.current.position.set(0, 0, 0);
     kick.current = 0;
     slideKick.current = 0;
@@ -647,6 +721,24 @@ function ViewmodelScene() {
     }
 
     const pose = evalReload(style, reloadT.current, weaponId, a);
+
+    /**
+     * Manual action between shots. The cycle is pinned to the tail of the fire
+     * cooldown, so the shot gets a beat of recoil settle before the hands move
+     * and the bolt drops home exactly as the rifle can fire again. Firing is
+     * already gated on fireCooldown, so this never lies about being ready.
+     */
+    let cycleLift = 0;
+    let cyclePull = 0;
+    if (def.boltAction && !state.reloading && reloadT.current < 0.02) {
+      const span = def.boltCycleTime || def.fireRate || 1;
+      const ct = clamp01(1 - Math.max(0, state.fireCooldown || 0) / span);
+      if (ct > 0 && ct < 1) {
+        cycleLift = smoothstep(0, 0.18, ct) * (1 - smoothstep(0.74, 0.94, ct)) * 1.15;
+        cyclePull = smoothstep(0.16, 0.46, ct) * (1 - smoothstep(0.56, 0.82, ct)) * 0.13;
+      }
+    }
+
     const rKick = kick.current;
     const adsT = state.adsAmount || 0;
     const adsHide = adsT > 0.05 && !!def.adsFov;
@@ -688,11 +780,10 @@ function ViewmodelScene() {
       const rest = magRestRef.current;
       if (style === 'melee') {
         magRef.current.visible = false;
+      } else if (transientMag) {
+        magRef.current.visible = reloadT.current > 0.15 && pose.magVis > 0.05;
       } else {
-        magRef.current.visible =
-          weaponId !== 'spatula'
-            ? pose.magVis > 0.02
-            : reloadT.current > 0.15 && pose.magVis > 0.05;
+        magRef.current.visible = pose.magVis > 0.02;
       }
       magRef.current.position.set(
         rest[0] + pose.magX,
@@ -710,8 +801,17 @@ function ViewmodelScene() {
     }
 
     if (leftHand.current) {
-      leftHand.current.position.set(pose.leftX, pose.leftY, pose.leftZ);
-      leftHand.current.rotation.set(pose.leftPitch, pose.leftYaw, pose.leftX * 0.5);
+      // The support hand rides back with the bolt during a manual cycle.
+      leftHand.current.position.set(
+        pose.leftX + cyclePull * 0.25,
+        pose.leftY + cyclePull * 0.3,
+        pose.leftZ - cyclePull * 0.45
+      );
+      leftHand.current.rotation.set(
+        pose.leftPitch + cyclePull * 1.6,
+        pose.leftYaw,
+        pose.leftX * 0.5
+      );
     }
     if (rightHand.current) {
       rightHand.current.rotation.set(pose.tip * 0.08, 0, pose.twist * 0.05);
@@ -729,8 +829,11 @@ function ViewmodelScene() {
       boltRef.current.position.set(
         0,
         0,
-        pose.bolt + (a.boltKick > 0 ? slideKick.current : slideKick.current * 0.5)
+        pose.bolt +
+          cyclePull +
+          (a.boltKick > 0 ? slideKick.current : slideKick.current * 0.5)
       );
+      boltRef.current.rotation.z = pose.boltLift + cycleLift;
     }
     if (chargeRef.current) {
       chargeRef.current.position.set(

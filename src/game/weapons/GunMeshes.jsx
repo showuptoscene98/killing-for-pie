@@ -18,38 +18,54 @@ const FpMat = forwardRef(function FpMat({ color, opacity = 1 }, ref) {
   );
 });
 
-function FpPart({ position, rotation, args, color, geo = 'box', renderOrder = 1000 }) {
+/**
+ * cylinderGeometry extrudes along Y, but almost every cylinder on a gun runs
+ * down the bore (-Z): barrels, gas tubes, scope tubes, muzzle devices. So `cyl`
+ * defaults to the Z axis here and the few cross-bore pins (screws, sling loops,
+ * bolt knobs) opt into 'x'. The tilt lives on an inner mesh so the `rotation`
+ * prop keeps meaning "where this part sits on the gun".
+ */
+const AXIS_TILT = {
+  x: [0, 0, Math.PI / 2],
+  y: null,
+  z: [Math.PI / 2, 0, 0],
+};
+
+function Shape({ geo, args }) {
+  if (geo === 'cyl') return <cylinderGeometry args={args} />;
+  if (geo === 'sphere') return <sphereGeometry args={args} />;
+  return <boxGeometry args={args} />;
+}
+
+function FpPart({
+  position,
+  rotation,
+  args,
+  color,
+  geo = 'box',
+  axis = 'z',
+  renderOrder = 1000,
+}) {
+  const tilt = geo === 'cyl' ? AXIS_TILT[axis] : null;
   return (
-    <mesh
-      position={position}
-      rotation={rotation}
-      renderOrder={renderOrder}
-      frustumCulled={false}
-    >
-      {geo === 'cyl' ? (
-        <cylinderGeometry args={args} />
-      ) : geo === 'sphere' ? (
-        <sphereGeometry args={args} />
-      ) : (
-        <boxGeometry args={args} />
-      )}
-      <FpMat color={color} />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      <mesh rotation={tilt ?? undefined} renderOrder={renderOrder} frustumCulled={false}>
+        <Shape geo={geo} args={args} />
+        <FpMat color={color} />
+      </mesh>
+    </group>
   );
 }
 
-function WorldPart({ position, rotation, args, color, geo = 'box' }) {
+function WorldPart({ position, rotation, args, color, geo = 'box', axis = 'z' }) {
+  const tilt = geo === 'cyl' ? AXIS_TILT[axis] : null;
   return (
-    <mesh position={position} rotation={rotation} castShadow frustumCulled={false}>
-      {geo === 'cyl' ? (
-        <cylinderGeometry args={args} />
-      ) : geo === 'sphere' ? (
-        <sphereGeometry args={args} />
-      ) : (
-        <boxGeometry args={args} />
-      )}
-      <Toon color={color} />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      <mesh rotation={tilt ?? undefined} castShadow frustumCulled={false}>
+        <Shape geo={geo} args={args} />
+        <Toon color={color} />
+      </mesh>
+    </group>
   );
 }
 
@@ -130,8 +146,8 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
             color="#3a2410"
           />
           {/* grip screws */}
-          <Part position={[0.042, -0.08, 0.05]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" color="#8a8680" />
-          <Part position={[0.042, -0.13, 0.08]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" color="#8a8680" />
+          <Part position={[0.042, -0.08, 0.05]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" axis="x" color="#8a8680" />
+          <Part position={[0.042, -0.13, 0.08]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" axis="x" color="#8a8680" />
           {/* mag well lip */}
           <Part position={[0, -0.14, 0.05]} rotation={[0.42, 0, 0]} args={[0.065, 0.025, 0.08]} color="#2a2218" />
           {!omitMag && (
@@ -188,7 +204,7 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
           {/* bolt / dust cover */}
           <group ref={boltG}>
             <Part position={[0.04, 0.06, 0.02]} args={[0.035, 0.04, 0.12]} color="#8a8680" />
-            <Part position={[0.07, 0.055, 0.04]} args={[0.04, 0.025, 0.025, 6]} geo="cyl" color="#6a6864" />
+            <Part position={[0.07, 0.055, 0.04]} args={[0.04, 0.025, 0.025, 6]} geo="cyl" axis="x" color="#6a6864" />
           </group>
           {/* barrel */}
           <Part
@@ -223,7 +239,7 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
           <Part position={[0, 0.035, -0.64]} args={[0.045, 0.045, 0.07, 8]} geo="cyl" color="#3a3a38" />
           <Part position={[0, 0.035, -0.68]} args={[0.055, 0.055, 0.03]} color="#2a2a28" />
           {/* sling loop */}
-          <Part position={[0.06, -0.02, 0.3]} args={[0.02, 0.02, 0.02, 6]} geo="cyl" color="#8a8680" />
+          <Part position={[0.06, -0.02, 0.3]} args={[0.02, 0.02, 0.02, 6]} geo="cyl" axis="x" color="#8a8680" />
         </group>
       );
 
@@ -236,7 +252,7 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
           {/* bolt */}
           <group ref={boltG}>
             <Part position={[0.045, 0.065, 0.02]} args={[0.03, 0.035, 0.14]} color="#2a2a28" />
-            <Part position={[0.075, 0.06, 0.05]} args={[0.035, 0.02, 0.02, 6]} geo="cyl" color="#6a6864" />
+            <Part position={[0.075, 0.06, 0.05]} args={[0.035, 0.02, 0.02, 6]} geo="cyl" axis="x" color="#6a6864" />
           </group>
           {/* long barrel */}
           <Part
@@ -276,6 +292,142 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
               color="#2a2a2e"
             />
           )}
+        </group>
+      );
+
+    case 'mosin':
+      return (
+        <group>
+          {/* —— One-piece straight stock; no pistol grip is the 91/30 giveaway —— */}
+          <Part position={[0, -0.03, -0.3]} args={[0.082, 0.078, 0.62]} color="#6b4a26" />
+          <Part position={[0, -0.025, 0.1]} args={[0.092, 0.1, 0.28]} color="#5d3d1c" />
+          <Part
+            position={[0, 0.0, 0.36]}
+            rotation={[0.06, 0, 0]}
+            args={[0.088, 0.13, 0.28]}
+            color="#5d3d1c"
+          />
+          {/* steel buttplate */}
+          <Part position={[0, 0.015, 0.51]} args={[0.092, 0.145, 0.03]} color="#2c2a26" />
+          {/* wrist swell behind the trigger */}
+          <Part
+            position={[0, -0.08, 0.2]}
+            rotation={[0.2, 0, 0]}
+            args={[0.075, 0.07, 0.2]}
+            color="#4e3115"
+          />
+          {/* sling slots */}
+          <Part position={[0, -0.03, -0.46]} args={[0.09, 0.03, 0.05]} color="#2a1c0e" />
+          <Part position={[0, -0.03, 0.3]} args={[0.096, 0.03, 0.05]} color="#2a1c0e" />
+
+          {/* —— Receiver —— */}
+          <Part position={[0, 0.05, 0.03]} args={[0.072, 0.086, 0.26]} color="#2b2b28" />
+          <Part
+            position={[0, 0.05, -0.11]}
+            args={[0.047, 0.047, 0.085, 12]}
+            geo="cyl"
+            color="#34332f"
+          />
+          {/* charger bridge the stripper clip seats into */}
+          <Part position={[0, 0.095, 0.1]} args={[0.062, 0.022, 0.05]} color="#232320" />
+          {/* trigger guard + fixed 5-round magazine floorplate */}
+          <Part position={[0, -0.02, 0.06]} args={[0.058, 0.055, 0.19]} color="#26261f" />
+          <Part position={[0, -0.055, 0.02]} args={[0.05, 0.04, 0.12]} color="#1e1e18" />
+          <Part
+            position={[0, -0.042, 0.11]}
+            rotation={[0.3, 0, 0]}
+            args={[0.016, 0.038, 0.012]}
+            color="#151512"
+          />
+
+          {/* —— Barrel —— */}
+          <Part
+            position={[0, 0.05, -0.21]}
+            args={[0.031, 0.031, 0.16, 12]}
+            geo="cyl"
+            color="#2e2e2a"
+          />
+          <Part
+            position={[0, 0.05, -0.56]}
+            args={[0.023, 0.023, 0.62, 12]}
+            geo="cyl"
+            color="#2a2a26"
+          />
+          {/* upper handguard */}
+          <Part position={[0, 0.088, -0.34]} args={[0.07, 0.042, 0.34]} color="#6b4a26" />
+          {/* barrel bands */}
+          <Part position={[0, 0.03, -0.52]} args={[0.075, 0.075, 0.03]} color="#33322d" />
+          <Part position={[0, 0.03, -0.66]} args={[0.07, 0.07, 0.028]} color="#33322d" />
+          {/* cleaning rod under the barrel */}
+          <Part
+            position={[0, 0.008, -0.55]}
+            args={[0.007, 0.007, 0.6, 6]}
+            geo="cyl"
+            color="#7a7872"
+          />
+          {/* muzzle + hooded front sight */}
+          <Part
+            position={[0, 0.05, -0.9]}
+            args={[0.029, 0.029, 0.07, 10]}
+            geo="cyl"
+            color="#1e1e1c"
+          />
+          <Part position={[0, 0.088, -0.87]} args={[0.03, 0.042, 0.055]} color="#1a1a18" />
+          <Part position={[0, 0.1, -0.87]} args={[0.01, 0.022, 0.014]} color="#0e0e0c" />
+          {/* rear ladder sight */}
+          <Part position={[0, 0.098, -0.2]} args={[0.05, 0.022, 0.1]} color="#232320" />
+          <Part
+            position={[0, 0.112, -0.16]}
+            rotation={[-0.12, 0, 0]}
+            args={[0.042, 0.012, 0.06]}
+            color="#1a1a18"
+          />
+
+          {/* —— PU scope, offset left so the bolt clears it —— */}
+          <Part
+            position={[-0.012, 0.152, -0.06]}
+            args={[0.028, 0.028, 0.24, 12]}
+            geo="cyl"
+            color="#1a1a1c"
+          />
+          <Part
+            position={[-0.012, 0.152, -0.19]}
+            args={[0.036, 0.036, 0.05, 12]}
+            geo="cyl"
+            color="#232326"
+          />
+          <Part
+            position={[-0.012, 0.152, 0.07]}
+            args={[0.032, 0.032, 0.045, 12]}
+            geo="cyl"
+            color="#232326"
+          />
+          <Part
+            position={[-0.012, 0.185, -0.05]}
+            args={[0.019, 0.019, 0.028, 8]}
+            geo="cyl"
+            axis="y"
+            color="#3a3a3e"
+          />
+          <Part
+            position={[0.018, 0.152, -0.05]}
+            args={[0.017, 0.017, 0.026, 8]}
+            geo="cyl"
+            axis="x"
+            color="#3a3a3e"
+          />
+          <Part position={[-0.012, 0.115, -0.13]} args={[0.026, 0.05, 0.04]} color="#2c2c30" />
+          <Part position={[-0.012, 0.115, 0.02]} args={[0.026, 0.05, 0.04]} color="#2c2c30" />
+
+          {/* —— Bolt. Group origin sits on the bore so rotation.z lifts the handle —— */}
+          <group ref={boltG} position={[0, 0.05, 0]}>
+            <Part position={[0, 0, 0.1]} args={[0.02, 0.02, 0.2, 10]} geo="cyl" color="#75726b" />
+            {/* cocking piece */}
+            <Part position={[0, 0, 0.21]} args={[0.025, 0.025, 0.04, 10]} geo="cyl" color="#4a4844" />
+            {/* handle arm + ball knob out the right side */}
+            <Part position={[0.048, 0, 0.06]} args={[0.078, 0.017, 0.017]} color="#75726b" />
+            <Part position={[0.094, 0, 0.06]} args={[0.024, 10, 10]} geo="sphere" color="#8d8a83" />
+          </group>
         </group>
       );
 
@@ -341,11 +493,12 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
           {/* receiver / action */}
           <Part position={[0, 0.02, 0.06]} args={[0.11, 0.1, 0.2]} color="#8a5030" />
           <Part position={[0, 0.04, 0.08]} args={[0.12, 0.05, 0.08]} color="#c8c4bc" />
-          {/* hinge pin */}
+          {/* hinge pin — runs across the action, not down the bore */}
           <Part
             position={[0, 0.04, 0.0]}
-            args={[0.13, 0.035, 0.035, 8]}
+            args={[0.022, 0.022, 0.13, 8]}
             geo="cyl"
+            axis="x"
             color="#d8d4cc"
           />
           {/* break-open barrels */}
@@ -532,12 +685,13 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
           <Part position={[0, 0.02, -0.14]} args={[0.055, 0.055, 0.18]} color="#c8ccd0" />
           <Part position={[0, 0.04, -0.4]} args={[0.4, 0.035, 0.32]} color="#e0e4e8" />
           <Part position={[0, 0.07, -0.4]} args={[0.36, 0.02, 0.28]} color="#f0f4f8" />
-          {/* pie */}
+          {/* pie — sits flat on the blade, so this one stays Y-up */}
           <Part
             position={[0, 0.13, -0.38]}
             rotation={[0.12, 0, 0]}
             args={[0.13, 0.14, 0.08, 14]}
             geo="cyl"
+            axis="y"
             color="#d4a574"
           />
           <Part position={[0, 0.18, -0.38]} args={[0.11, 0.022, 0.11]} color="#c44030" />
@@ -607,29 +761,27 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
   }
 }
 
+/** How each gun sits in the hands, relative to the viewmodel rig. */
+const FP_POSE = {
+  spatula: { position: [0.04, 0, -0.02], rotation: [0.12, 0.15, -0.4] },
+  rakia: { position: [0.06, -0.02, -0.04], rotation: [0.35, 0.25, -0.55] },
+  olympia: { position: [0.02, 0.01, -0.06], rotation: [0.04, 0.06, 0.02] },
+  mp5: { position: [0.03, 0.0, -0.06], rotation: [0.08, 0.1, 0.04] },
+  sniper: { position: [0.015, 0.03, -0.14], rotation: [0.03, 0.05, 0.01] },
+  // Longest gun in the game — pushed further forward so the butt clears frame.
+  mosin: { position: [0.015, 0.025, -0.18], rotation: [0.025, 0.045, 0.01] },
+  ak47: { position: [0.025, 0.015, -0.09], rotation: [0.08, 0.1, 0.05] },
+  raygun: { position: [0.03, 0.01, -0.05], rotation: [0.1, 0.12, 0.06] },
+  thundergun: { position: [0.01, 0.02, -0.12], rotation: [0.05, 0.04, 0.02] },
+  m1911: { position: [0.04, 0.0, -0.04], rotation: [0.1, 0.12, 0.06] },
+};
+
+const FP_POSE_DEFAULT = { position: [0.02, 0.02, -0.1], rotation: [0.06, 0.08, 0.02] };
+
 /** First-person held gun. Mag omitted — animated by viewmodel. */
 export function FpGun({ weaponId, children, slideRef, breakRef, boltRef, chargeRef }) {
   const id = weaponId || 'm1911';
-  const pose =
-    id === 'spatula'
-      ? { position: [0.04, 0, -0.02], rotation: [0.12, 0.15, -0.4] }
-      : id === 'rakia'
-        ? { position: [0.06, -0.02, -0.04], rotation: [0.35, 0.25, -0.55] }
-        : id === 'olympia'
-          ? { position: [0.02, 0.01, -0.06], rotation: [0.04, 0.06, 0.02] }
-          : id === 'mp5'
-            ? { position: [0.03, 0.0, -0.06], rotation: [0.08, 0.1, 0.04] }
-            : id === 'sniper'
-              ? { position: [0.015, 0.03, -0.14], rotation: [0.03, 0.05, 0.01] }
-              : id === 'ak47'
-                ? { position: [0.025, 0.015, -0.09], rotation: [0.08, 0.1, 0.05] }
-                : id === 'raygun'
-                  ? { position: [0.03, 0.01, -0.05], rotation: [0.1, 0.12, 0.06] }
-                  : id === 'thundergun'
-                    ? { position: [0.01, 0.02, -0.12], rotation: [0.05, 0.04, 0.02] }
-                    : id === 'm1911'
-                      ? { position: [0.04, 0.0, -0.04], rotation: [0.1, 0.12, 0.06] }
-                      : { position: [0.02, 0.02, -0.1], rotation: [0.06, 0.08, 0.02] };
+  const pose = FP_POSE[id] ?? FP_POSE_DEFAULT;
 
   return (
     <group position={pose.position} rotation={pose.rotation}>
@@ -658,6 +810,9 @@ export function magRestPose(weaponId) {
       return [0, -0.1, 0.0];
     case 'sniper':
       return [0, -0.12, 0.02];
+    // Fixed magazine — this is where the stripper clip seats on the bridge.
+    case 'mosin':
+      return [0, 0.115, 0.1];
     case 'mp5':
       return [0, -0.14, 0.08];
     case 'olympia':
@@ -673,10 +828,21 @@ export function magRestPose(weaponId) {
   }
 }
 
+/**
+ * Guns whose "mag" mesh is something you only hold during a reload — a pie, a
+ * stripper clip — rather than a magazine that lives in the gun. The viewmodel
+ * hides these at rest.
+ */
+export function magIsTransient(weaponId) {
+  return weaponId === 'spatula' || weaponId === 'mosin';
+}
+
 export function reloadStyle(weaponId) {
   switch (weaponId) {
     case 'm1911':
       return 'pistol';
+    case 'mosin':
+      return 'bolt';
     case 'olympia':
       return 'break';
     case 'spatula':
@@ -727,6 +893,8 @@ export function muzzleOffset(weaponId) {
       return [0.02, 0.05, -0.7];
     case 'sniper':
       return [0.02, 0.05, -0.88];
+    case 'mosin':
+      return [0.02, 0.06, -0.96];
     case 'mp5':
       return [0.02, 0.05, -0.48];
     case 'olympia':
