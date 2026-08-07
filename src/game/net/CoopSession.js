@@ -9,6 +9,14 @@ import {
   buildInviteUrl,
 } from './roomCode';
 import { defaultHostWsUrl, parseJoinAddress } from './lanAddress';
+import {
+  canUseRealtime,
+  joinRoomChannel,
+  leaveRoomChannel,
+  rtSendClientToHost,
+  rtSendHostToClient,
+  trackPresence,
+} from './coopRealtime';
 
 const CLIENT_PING_MS = 4000;
 const RECONNECT_MAX = 3;
@@ -93,6 +101,8 @@ export class CoopSession {
     this._lastPongAt = 0;
     this._disconnectTimer = null;
     this._lobbyPullTimer = null;
+    this._rtChannel = null;
+    this._rtSb = null;
   }
 
   get status() {
@@ -278,6 +288,133 @@ export class CoopSession {
   }
 
   async hostOnline(name) {
+    // Prefer Supabase Realtime — PeerJS public TURN is dead, so cross-NAT
+    // server-browser joins fail without a server relay.
+    if (canUseRealtime()) {
+      try {
+        await this.hostRealtime(name);
+        return;
+      } catch (err) {
+        console.warn('[coop] realtime host failed, falling back to PeerJS', err);
+        this.destroyTransportOnly();
+      }
+    }
+    return this.hostPeerOnline(name);
+  }
+
+  async joinOnline(rawCode, name) {
+    const code = normalizeRoomCode(rawCode);
+    if (!isRoomCode(code)) {
+      const msg = 'Enter a room code (or paste the invite link)';
+      this._setStatus('error', msg);
+      throw new Error(msg);
+    }
+    if (canUseRealtime()) {
+      try {
+        await this.joinRealtime(code, name);
+        return;
+      } catch (err) {
+        console.warn('[coop] realtime join failed, falling back to PeerJS', err);
+        this.destroyTransportOnly();
+      }
+    }
+    return this.joinPeerOnline(code, name);
+  }
+
+  async hostRealtime(name) {
+    this.destroyTransportOnly();
+    this.destroyed = false;
+    this.backend = 'realtime';
+    this.role = 'host';
+    this.localName = name;
+    this.started = false;
+    this.players = [];
+    this._conns.clear();
+    this._setStatus('connecting');
+
+    const code = generateRoomCode();
+    const { channel, clientId, sb } = await joinRoomChannel(code, {
+      onClientToHost: ({ from, msg }) => {
+        if (this.destroyed || this.role !== 'host') return;
+        const conn = this._rtFakeConn(from);
+        this._onPeerMessage(msg, conn);
+      },
+      onPresenceLeave: (left) => {
+        if (this.destroyed || this.role !== 'host') return;
+        for (const p of left) {
+          const id = p?.key || p?.user_id || p?.id;
+          if (!id || id === this.localId) continue;
+          this._hostConnClosed(this._rtFakeConn(id));
+        }
+      },
+    });
+    if (this.destroyed) {
+      await leaveRoomChannel(sb, channel);
+      throw new Error('Host cancelled');
+    }
+
+    this._rtChannel = channel;
+    this._rtSb = sb;
+    this.roomCode = code;
+    this.localId = 'host';
+    this._hostId = 'host';
+    this.players = [{ id: 'host', name, isHost: true }];
+    this._syncInvite();
+    await trackPresence(channel, { role: 'host', name, clientId });
+    this._setStatus('lobby');
+    this._emit('lobby', this._lobbyPayload());
+  }
+
+  async joinRealtime(code, name) {
+    this.destroyTransportOnly();
+    this.destroyed = false;
+    this.backend = 'realtime';
+    this.role = 'client';
+    this.localName = name;
+    this.started = false;
+    this._setStatus('connecting');
+    this.roomCode = code;
+    this._syncInvite();
+
+    const { channel, clientId, sb } = await joinRoomChannel(code, {
+      onHostToClient: ({ to, data }) => {
+        if (this.destroyed || this.role !== 'client') return;
+        if (to && to !== '*' && to !== this.localId) return;
+        if (!data) return;
+        this._onServerMessage(data);
+      },
+    });
+    if (this.destroyed) {
+      await leaveRoomChannel(sb, channel);
+      throw new Error('Join cancelled');
+    }
+
+    this._rtChannel = channel;
+    this._rtSb = sb;
+    this.localId = clientId;
+    await trackPresence(channel, { role: 'client', name, clientId });
+    rtSendClientToHost(channel, clientId, { type: 'join', name });
+    this._startLobbyPull();
+    await this._waitForLobbyOrStart(20000);
+  }
+
+  _rtFakeConn(peerId) {
+    const id = String(peerId || '');
+    let conn = this._conns.get(id);
+    if (conn) return conn;
+    conn = {
+      peer: id,
+      __kfpId: id,
+      open: true,
+      send: (data) => {
+        rtSendHostToClient(this._rtChannel, id, data);
+      },
+    };
+    this._conns.set(id, conn);
+    return conn;
+  }
+
+  async hostPeerOnline(name) {
     this.destroyTransportOnly();
     this.destroyed = false;
     this.backend = 'peer';
@@ -316,7 +453,7 @@ export class CoopSession {
     }
   }
 
-  async joinOnline(rawCode, name) {
+  async joinPeerOnline(code, name) {
     this.destroyTransportOnly();
     this.destroyed = false;
     this.backend = 'peer';
@@ -324,13 +461,6 @@ export class CoopSession {
     this.localName = name;
     this.started = false;
     this._setStatus('connecting');
-
-    const code = normalizeRoomCode(rawCode);
-    if (!isRoomCode(code)) {
-      const msg = 'Enter a room code (or paste the invite link)';
-      this._setStatus('error', msg);
-      throw new Error(msg);
-    }
 
     this.roomCode = code;
     this._syncInvite();
@@ -437,7 +567,7 @@ export class CoopSession {
     if (this.players.length < 1) return;
     this.mapId = mapId || this.mapId || 'camp';
 
-    if (this.backend === 'peer') {
+    if (this.backend === 'peer' || this.backend === 'realtime') {
       this.started = true;
       const payload = this._startPayload();
       // Aggressive fan-out — pull every connected peer into the match
@@ -463,7 +593,7 @@ export class CoopSession {
     // Only broadcast once we're actually hosting a lobby
     if (this.role !== 'host') return;
 
-    if (this.backend === 'peer') {
+    if (this.backend === 'peer' || this.backend === 'realtime') {
       this._peerBroadcast({ type: 'lobby', ...this._lobbyFields() });
       this._emit('lobby', this._lobbyPayload());
       return;
@@ -474,6 +604,10 @@ export class CoopSession {
 
   sendToHost(msg) {
     if (this.role !== 'client') return;
+    if (this.backend === 'realtime') {
+      rtSendClientToHost(this._rtChannel, this.localId, { type: 'toHost', msg });
+      return;
+    }
     if (this.backend === 'peer') {
       this._safeSend(this._conn, { type: 'toHost', msg });
       return;
@@ -483,6 +617,10 @@ export class CoopSession {
 
   sendToClient(peerId, msg) {
     if (this.role !== 'host') return;
+    if (this.backend === 'realtime') {
+      rtSendHostToClient(this._rtChannel, peerId, { type: 'fromHost', msg });
+      return;
+    }
     if (this.backend === 'peer') {
       this._safeSend(this._conns.get(peerId), { type: 'fromHost', msg });
       return;
@@ -492,6 +630,10 @@ export class CoopSession {
 
   broadcast(msg) {
     if (this.role !== 'host') return;
+    if (this.backend === 'realtime') {
+      rtSendHostToClient(this._rtChannel, '*', { type: 'fromHost', msg });
+      return;
+    }
     if (this.backend === 'peer') {
       this._peerBroadcast({ type: 'fromHost', msg });
       return;
@@ -525,6 +667,14 @@ export class CoopSession {
     this._clearReconnect();
     this._clearDisconnectGrace();
     this._clearLobbyPull();
+
+    if (this._rtChannel) {
+      const ch = this._rtChannel;
+      const sb = this._rtSb;
+      this._rtChannel = null;
+      this._rtSb = null;
+      leaveRoomChannel(sb, ch);
+    }
 
     if (this.ws) {
       try {
@@ -593,6 +743,10 @@ export class CoopSession {
   }
 
   _peerBroadcast(msg) {
+    if (this.backend === 'realtime') {
+      rtSendHostToClient(this._rtChannel, '*', msg);
+      return;
+    }
     this._allDataConns().forEach((conn) => {
       this._safeSend(conn, msg);
     });
@@ -607,12 +761,12 @@ export class CoopSession {
 
   _startLobbyPull() {
     this._clearLobbyPull();
-    // First sync immediately once open; then keep polling
-    if (this._conn?.open) {
-      this._safeSend(this._conn, { type: 'sync', name: this.localName });
-    }
-    this._lobbyPullTimer = setInterval(() => {
-      if (this.destroyed || this.backend !== 'peer' || this.role !== 'client') {
+    const pull = () => {
+      if (
+        this.destroyed ||
+        (this.backend !== 'peer' && this.backend !== 'realtime') ||
+        this.role !== 'client'
+      ) {
         this._clearLobbyPull();
         return;
       }
@@ -620,9 +774,19 @@ export class CoopSession {
         this._clearLobbyPull();
         return;
       }
+      if (this.backend === 'realtime') {
+        rtSendClientToHost(this._rtChannel, this.localId, {
+          type: 'sync',
+          name: this.localName,
+        });
+        return;
+      }
       if (!this._conn?.open) return;
       this._safeSend(this._conn, { type: 'sync', name: this.localName });
-    }, 1500);
+    };
+    // First sync immediately once open; then keep polling
+    pull();
+    this._lobbyPullTimer = setInterval(pull, 1500);
   }
 
   _startPeerKeepalive() {
@@ -806,9 +970,15 @@ export class CoopSession {
     });
   }
 
-  /** True when this host is still registered with PeerJS Cloud (joinable). */
+  /** True when this host is still reachable for new joiners. */
   isPeerSignalingLive() {
-    return !!(this.peer && !this.destroyed && this.peer.open && !this.peer.destroyed);
+    if (this.destroyed) return false;
+    if (this.backend === 'realtime') {
+      const st = this._rtChannel?.state;
+      // supabase-js: 'joined' while live; treat unknown as live if channel exists
+      return !!(this._rtChannel && st !== 'closed' && st !== 'errored');
+    }
+    return !!(this.peer && this.peer.open && !this.peer.destroyed);
   }
 
   _wireHostPeer(peer) {
