@@ -134,7 +134,12 @@ export default function HubCoopSync() {
 
       if (event === 'clientMsg' && isHost) {
         const { peerId, msg } = payload || {};
-        if (!msg || msg.type !== 'hubPose') return;
+        if (!msg) return;
+        if (msg.type === 'hubPoseRequest') {
+          broadcastHubSnap(session, peerPlayers.current);
+          return;
+        }
+        if (msg.type !== 'hubPose') return;
         let p = peerPlayers.current.get(peerId);
         if (!p) {
           p = createCoopPlayer(peerId, msg.name || 'Survivor', peerPlayers.current.size, {
@@ -163,19 +168,24 @@ export default function HubCoopSync() {
 
       if (event === 'hostMsg' && !isHost) {
         if (!payload || payload.type !== 'hubSnap') return;
-        applyHubSnap(payload, stateRef, remotesRef);
+        applyHubSnap(payload, stateRef, remotesRef, sessionRef);
+        return;
       }
 
       if (event === 'playerLeft' && isHost) {
         peerPlayers.current.delete(payload?.peerId);
         broadcastHubSnap(session, peerPlayers.current);
+        return;
       }
 
-      // Keep coopLocalId fresh after welcome packet assigns real peer id
+      // Keep coopLocalId fresh; after lobby, request a snap in case we missed one.
       if (event === 'lobby' || event === 'status') {
         const state = stateRef.current;
         const s = sessionRef.current;
         if (state && s?.localId) state.coopLocalId = s.localId;
+        if (event === 'lobby' && !isHost && s?.role === 'client') {
+          s.sendToHost({ type: 'hubPoseRequest' });
+        }
       }
     });
   }, [active, isHost, sessionRef, stateRef, remotesRef]);
@@ -276,9 +286,11 @@ function broadcastHubSnap(session, peerMap) {
   session.broadcast({ type: 'hubSnap', players });
 }
 
-function applyHubSnap(msg, stateRef, remotesRef) {
+function applyHubSnap(msg, stateRef, remotesRef, sessionRef) {
   const state = stateRef.current;
-  const localId = state?.coopLocalId;
+  const session = sessionRef?.current;
+  const localId = state?.coopLocalId || session?.localId || '';
+  if (state && session?.localId) state.coopLocalId = session.localId;
   const list = msg.players || [];
   const remotes = [];
   for (let i = 0; i < list.length; i++) {

@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import Toon from '../style/Toon';
-import { GlbGunMesh, hasGlbGun } from './GlbGun';
+import { Suspense } from 'react';
+import { GlbGun, GlbGunMesh, hasGlbGun } from './GlbGun';
 
 /** Shared procedural gun meshes — FP (unlit) + world/coop (toon) */
 
@@ -789,22 +790,28 @@ export function FpGun({ weaponId, children, slideRef, breakRef, boltRef, chargeR
   const pose = FP_POSE[id] ?? FP_POSE_DEFAULT;
   const useGlb = hasGlbGun(id);
 
+  const procedural = (
+    <GunParts
+      weaponId={id}
+      Part={FpPart}
+      omitMag
+      anim={{
+        slide: slideRef,
+        breakOpen: breakRef,
+        bolt: boltRef,
+        charge: chargeRef,
+      }}
+    />
+  );
+
   return (
     <group position={pose.position} rotation={pose.rotation}>
       {useGlb ? (
-        <GlbGunMesh weaponId={id} fp />
+        <Suspense fallback={procedural}>
+          <GlbGunMesh weaponId={id} fp />
+        </Suspense>
       ) : (
-        <GunParts
-          weaponId={id}
-          Part={FpPart}
-          omitMag
-          anim={{
-            slide: slideRef,
-            breakOpen: breakRef,
-            bolt: boltRef,
-            charge: chargeRef,
-          }}
-        />
+        procedural
       )}
       {children}
     </group>
@@ -881,7 +888,7 @@ export function WorldGun({ weaponId, scale = 1 }) {
       scale={scale * 0.85}
     >
       {hasGlbGun(id) ? (
-        <GlbGunMesh weaponId={id} />
+        <GlbGun weaponId={id} />
       ) : (
         <GunParts weaponId={id} Part={WorldPart} />
       )}
@@ -895,7 +902,7 @@ export function DisplayGun({ weaponId, scale = 1 }) {
   return (
     <group scale={scale} rotation={[0, Math.PI * 0.15, 0.08]}>
       {hasGlbGun(id) ? (
-        <GlbGunMesh weaponId={id} />
+        <GlbGun weaponId={id} />
       ) : (
         <GunParts weaponId={id} Part={WorldPart} />
       )}

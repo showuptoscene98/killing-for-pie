@@ -11,6 +11,7 @@ import { CoopSession } from './CoopSession';
 import {
   buildInviteUrl,
   clearInviteFromUrl,
+  normalizeRoomCode,
   randomPlayerName,
   readInviteFromUrl,
 } from './roomCode';
@@ -208,6 +209,13 @@ export function CoopProvider({ children }) {
       setRole('client');
       setError('');
       setPendingJoin('');
+      // Show the code immediately — lobby event can take seconds over PeerJS.
+      const preview = normalizeRoomCode(address);
+      if (preview) {
+        setRoomCode(preview);
+        setJoinAddress(preview);
+        setInviteUrl(buildInviteUrl(preview));
+      }
       setPhase('connecting');
       try {
         await ensureSession().join(address, n);

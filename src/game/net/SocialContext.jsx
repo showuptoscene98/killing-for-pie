@@ -145,6 +145,7 @@ export function SocialProvider({ children }) {
         setError(err.message);
         return [];
       }
+      setError('');
       let rows = (data || []).map((row) => ({
         ...row,
         hostCallsign: row.host_callsign || 'Host',
@@ -189,12 +190,16 @@ export function SocialProvider({ children }) {
             id: uid,
             callsign: 'Survivor',
             friend_code: code,
+            // Shared Pie Guy schema: leave character_name empty to avoid
+            // unique(character_name, server) collisions on default 'Survivor'.
+            character_name: '',
           });
         }
         await refreshProfile(uid);
         await refreshFriends(uid);
         await refreshNotifications(uid);
       }
+      setAvailable(true);
       setError('');
       return uid;
     } catch (err) {

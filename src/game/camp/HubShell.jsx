@@ -74,7 +74,8 @@ function CampHUD({
   const [friendCodeInput, setFriendCodeInput] = useState('');
   const [friendMsg, setFriendMsg] = useState('');
   const [friendBusy, setFriendBusy] = useState(false);
-  const inLobby = squadPhase === 'lobby' || squadPhase === 'connecting';
+  const connecting = squadPhase === 'connecting';
+  const inLobby = squadPhase === 'lobby' || connecting;
 
   useEffect(() => {
     if (!deployOpen || (deployMode !== 'browser' && deployMode !== 'friends')) return;
@@ -181,7 +182,9 @@ function CampHUD({
               Start
             </button>
           ) : (
-            <span className="hub-squad-pill-wait">Waiting on host…</span>
+            <span className="hub-squad-pill-wait">
+              {connecting ? 'Connecting…' : 'Waiting on host…'}
+            </span>
           )}
         </div>
       )}
@@ -339,9 +342,9 @@ function CampHUD({
               <div className="hub-browser">
                 {!social.configured ? (
                   <p className="hub-invite-hint">
-                    Server browser needs Supabase keys (REACT_APP_SUPABASE_URL /
-                    REACT_APP_SUPABASE_ANON_KEY). Restart the dev server after editing
-                    .env.local.
+                    Server browser needs VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY
+                    in .env.local (restart Vite after editing). For GitHub Pages,
+                    set the same names as repo Actions secrets.
                   </p>
                 ) : !social.available ? (
                   <p className="hub-invite-hint">
@@ -350,6 +353,9 @@ function CampHUD({
                   </p>
                 ) : (
                   <>
+                    {social.error && (
+                      <p className="hub-invite-hint">{social.error}</p>
+                    )}
                     <div className="hub-deploy-modes">
                       {[
                         { id: 'all', label: 'All' },
@@ -417,9 +423,8 @@ function CampHUD({
               <div className="hub-friends">
                 {!social.configured ? (
                   <p className="hub-invite-hint">
-                    Friends need Supabase keys (REACT_APP_SUPABASE_URL /
-                    REACT_APP_SUPABASE_ANON_KEY). Restart the dev server after editing
-                    .env.local.
+                    Friends need VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in
+                    .env.local (restart Vite after editing).
                   </p>
                 ) : !social.available ? (
                   <p className="hub-invite-hint">
@@ -551,7 +556,12 @@ function CampHUD({
             {inLobby && (
               <div className="hub-invite-card">
                 <p className="coop-section-label">Invite code</p>
-                <div className="hub-invite-code">{roomCode || '……'}</div>
+                <div className="hub-invite-code">{roomCode || (connecting ? '…' : '……')}</div>
+                {connecting && !isHost && (
+                  <p className="hub-invite-hint">
+                    Connecting to host… keep this tab open (adblock can block PeerJS).
+                  </p>
+                )}
                 <div className="hub-invite-actions">
                   <button type="button" className="menu-btn" onClick={copyCode} disabled={!roomCode}>
                     {copied === 'code' ? 'Copied!' : 'Copy Code'}
@@ -576,7 +586,7 @@ function CampHUD({
                     length: Math.max(0, MAX_COOP_PLAYERS - (players?.length || 0)),
                   }).map((_, i) => (
                     <li key={`e${i}`} className="is-empty">
-                      Waiting…
+                      {connecting ? 'Connecting…' : 'Waiting…'}
                     </li>
                   ))}
                 </ul>
@@ -657,9 +667,14 @@ function CampHUD({
                   Start Match · {(players || []).length}/{MAX_COOP_PLAYERS}
                 </button>
               )}
-              {inLobby && !isHost && (
+              {inLobby && !isHost && !connecting && (
                 <p className="menu-sub" style={{ margin: 0 }}>
                   Waiting for host to start… Walk the camp meanwhile.
+                </p>
+              )}
+              {connecting && !isHost && (
+                <p className="menu-sub" style={{ margin: 0 }}>
+                  Connecting to host…
                 </p>
               )}
               {inLobby && (
