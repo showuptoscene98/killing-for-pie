@@ -11,7 +11,6 @@ import PlaySetup from './game/ui/PlaySetup';
 import GameOver from './game/ui/GameOver';
 import PauseMenu from './game/ui/PauseMenu';
 import HubShell from './game/camp/HubShell';
-import CoopLobby from './game/ui/CoopLobby';
 import CoopDisconnect from './game/ui/CoopDisconnect';
 import { inputState } from './game/player/PlayerControls';
 import {
@@ -227,7 +226,7 @@ function PlayingShell({ onMenu, onEnterCamp, coop }) {
 }
 
 function AppRoutes() {
-  const [screen, setScreen] = useState('menu'); // menu | play | playing | camp | coop
+  const [screen, setScreen] = useState('menu'); // menu | play | playing | camp
   const [session, setSession] = useState(0);
   const [hubKey, setHubKey] = useState(0);
   const [coopMode, setCoopMode] = useState(false);
@@ -346,13 +345,6 @@ function AppRoutes() {
         <PlaySetup
           onPlaySolo={start}
           onPlayCoop={toCoop}
-          onBack={toCamp}
-        />
-      )}
-      {screen === 'coop' && (
-        <CoopLobby
-          initialCode={joinCode}
-          initialIntent={coopIntent}
           onBack={toCamp}
         />
       )}

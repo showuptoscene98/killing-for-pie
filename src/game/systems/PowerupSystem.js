@@ -165,6 +165,8 @@ export function tickPowerups(state, zombies, dt, playerX, playerZ) {
 
   for (let i = pu.drops.length - 1; i >= 0; i--) {
     const d = pu.drops[i];
+    // Nuke activation clears the whole drops array mid-loop — bail cleanly.
+    if (!d) continue;
     d.life -= clamped;
     d.bob += clamped * 3.2;
     d.y = 0.55 + Math.sin(d.bob) * 0.12;
@@ -177,6 +179,8 @@ export function tickPowerups(state, zombies, dt, playerX, playerZ) {
       const type = d.type;
       pu.drops.splice(i, 1);
       activatePowerup(state, zombies, type);
+      // activatePowerup(nuke) may empty drops — stop iterating the stale indices.
+      if (pu.drops.length === 0) break;
     }
   }
 }

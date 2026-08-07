@@ -144,7 +144,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   },
   mosin: {
     id: 'mosin',
-    name: 'Mosin 91/30',
+    name: 'Mosin Nagant',
     damage: 285,
     headMultiplier: 3.6,
     fireRate: 1.55,
@@ -159,10 +159,8 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     recoil: 0.17,
     automatic: false,
     /**
-     * Manual action: the viewmodel works the bolt over the last boltCycleTime
-     * seconds of the fireRate cooldown, so the shot leaves a beat of recoil
-     * settle before the hands move. Firing is already gated by fireCooldown, so
-     * the animation lands exactly as the rifle becomes ready again.
+     * Bolt-action sniper: viewmodel works the bolt over the last boltCycleTime
+     * seconds of the fireRate cooldown — recoil settles, then the hands cycle.
      */
     boltAction: true,
     boltCycleTime: 1.15,

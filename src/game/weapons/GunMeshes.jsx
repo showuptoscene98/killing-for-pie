@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import Toon from '../style/Toon';
+import { GlbGunMesh, hasGlbGun } from './GlbGun';
 
 /** Shared procedural gun meshes — FP (unlit) + world/coop (toon) */
 
@@ -111,10 +112,10 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
       return (
         <group>
           {/* —— Frame —— */}
-          <Part position={[0, -0.015, 0.02]} args={[0.092, 0.055, 0.2]} color="#b8b4ac" />
-          <Part position={[0, 0.01, 0.04]} args={[0.088, 0.03, 0.14]} color="#a8a49c" />
+          <Part position={[0, -0.015, 0.02]} args={[0.092, 0.055, 0.2]} color="#7c7871" />
+          <Part position={[0, 0.01, 0.04]} args={[0.088, 0.03, 0.14]} color="#716d67" />
           {/* dust cover / rail */}
-          <Part position={[0, -0.005, -0.06]} args={[0.09, 0.04, 0.1]} color="#9a968e" />
+          <Part position={[0, -0.005, -0.06]} args={[0.09, 0.04, 0.1]} color="#67635d" />
           {/* trigger guard */}
           <Part position={[0, -0.055, -0.02]} args={[0.055, 0.055, 0.07]} color="#3a3834" />
           <Part position={[0, -0.04, -0.05]} args={[0.035, 0.02, 0.04]} color="#2a2824" />
@@ -146,8 +147,8 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
             color="#3a2410"
           />
           {/* grip screws */}
-          <Part position={[0.042, -0.08, 0.05]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" axis="x" color="#8a8680" />
-          <Part position={[0.042, -0.13, 0.08]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" axis="x" color="#8a8680" />
+          <Part position={[0.042, -0.08, 0.05]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" axis="x" color="#6b6761" />
+          <Part position={[0.042, -0.13, 0.08]} rotation={[0.42, 0, 0]} args={[0.012, 0.012, 0.012, 6]} geo="cyl" axis="x" color="#6b6761" />
           {/* mag well lip */}
           <Part position={[0, -0.14, 0.05]} rotation={[0.42, 0, 0]} args={[0.065, 0.025, 0.08]} color="#2a2218" />
           {!omitMag && (
@@ -162,15 +163,15 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
           <Part position={[0, 0.04, 0.11]} args={[0.03, 0.04, 0.035]} color="#2a2a28" />
           <Part position={[0, 0.065, 0.1]} rotation={[-0.4, 0, 0]} args={[0.022, 0.035, 0.02]} color="#1a1a18" />
           {/* beaver tail */}
-          <Part position={[0, 0.02, 0.12]} args={[0.07, 0.04, 0.04]} color="#a8a49c" />
+          <Part position={[0, 0.02, 0.12]} args={[0.07, 0.04, 0.04]} color="#716d67" />
 
           {/* —— Slide (animatable) —— */}
           <group ref={slideG}>
-            <Part position={[0, 0.035, -0.01]} args={[0.098, 0.07, 0.24]} color="#d8d4cc" />
+            <Part position={[0, 0.035, -0.01]} args={[0.098, 0.07, 0.24]} color="#918d86" />
             {/* ejection port cut */}
             <Part position={[0.02, 0.055, -0.02]} args={[0.05, 0.02, 0.08]} color="#1a1a18" />
             {/* barrel hood */}
-            <Part position={[0, 0.04, -0.12]} args={[0.06, 0.045, 0.06]} color="#c8c4bc" />
+            <Part position={[0, 0.04, -0.12]} args={[0.06, 0.045, 0.06]} color="#827e77" />
             <Serrations Part={Part} z0={0.02} z1={0.1} y={0.04} count={7} color="#2a2a28" />
             {/* front sight */}
             <Part position={[0, 0.08, -0.11]} args={[0.014, 0.028, 0.035]} color="#1a1a18" />
@@ -198,9 +199,10 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
     case 'm14':
       return (
         <group>
-          {/* receiver */}
-          <Part position={[0, 0.03, -0.02]} args={[0.1, 0.09, 0.28]} color="#c8c4bc" />
-          <Part position={[0, 0.05, -0.02]} args={[0.085, 0.04, 0.22]} color="#a8a49c" />
+          {/* Receiver. Kept in the barrel's value family — parkerised light, but
+              not the near-white that made it look like a separate white block. */}
+          <Part position={[0, 0.03, -0.02]} args={[0.1, 0.09, 0.28]} color="#5b5853" />
+          <Part position={[0, 0.05, -0.02]} args={[0.085, 0.04, 0.22]} color="#514e49" />
           {/* bolt / dust cover */}
           <group ref={boltG}>
             <Part position={[0.04, 0.06, 0.02]} args={[0.035, 0.04, 0.12]} color="#8a8680" />
@@ -355,15 +357,17 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
           />
           {/* upper handguard */}
           <Part position={[0, 0.088, -0.34]} args={[0.07, 0.042, 0.34]} color="#6b4a26" />
-          {/* barrel bands */}
-          <Part position={[0, 0.03, -0.52]} args={[0.075, 0.075, 0.03]} color="#33322d" />
-          <Part position={[0, 0.03, -0.66]} args={[0.07, 0.07, 0.028]} color="#33322d" />
-          {/* cleaning rod under the barrel */}
+          {/* Barrel bands, centred on the barrel-plus-handguard stack they clamp
+              rather than on the bore, so they don't hang under the barrel. */}
+          <Part position={[0, 0.062, -0.52]} args={[0.078, 0.09, 0.03]} color="#33322d" />
+          <Part position={[0, 0.058, -0.66]} args={[0.072, 0.08, 0.028]} color="#33322d" />
+          {/* Cleaning rod, tucked against the barrel so the length that clears
+              the forestock reads as part of the gun and not a floating pin. */}
           <Part
-            position={[0, 0.008, -0.55]}
-            args={[0.007, 0.007, 0.6, 6]}
+            position={[0, 0.023, -0.6]}
+            args={[0.007, 0.007, 0.62, 6]}
             geo="cyl"
-            color="#7a7872"
+            color="#4d4b45"
           />
           {/* muzzle + hooded front sight */}
           <Part
@@ -492,33 +496,34 @@ function GunParts({ weaponId, Part, omitMag = false, anim = {} }) {
         <group>
           {/* receiver / action */}
           <Part position={[0, 0.02, 0.06]} args={[0.11, 0.1, 0.2]} color="#8a5030" />
-          <Part position={[0, 0.04, 0.08]} args={[0.12, 0.05, 0.08]} color="#c8c4bc" />
+          <Part position={[0, 0.04, 0.08]} args={[0.12, 0.05, 0.08]} color="#aeaaa2" />
           {/* hinge pin — runs across the action, not down the bore */}
           <Part
             position={[0, 0.04, 0.0]}
             args={[0.022, 0.022, 0.13, 8]}
             geo="cyl"
             axis="x"
-            color="#d8d4cc"
+            color="#9a968e"
           />
-          {/* break-open barrels */}
+          {/* Break-open barrels. Blued, so the twin tubes and the rib read as
+              separate steel against the silver action instead of one pale slab. */}
           <group ref={breakG} position={[0, 0.04, 0.0]}>
             <Part
               position={[-0.028, 0.015, -0.32]}
               args={[0.03, 0.03, 0.5, 10]}
               geo="cyl"
-              color="#d0ccc4"
+              color="#3f3f46"
             />
             <Part
               position={[0.028, 0.015, -0.32]}
               args={[0.03, 0.03, 0.5, 10]}
               geo="cyl"
-              color="#d0ccc4"
+              color="#3f3f46"
             />
             {/* rib */}
-            <Part position={[0, 0.04, -0.28]} args={[0.02, 0.015, 0.42]} color="#b8b4ac" />
-            {/* bead sight */}
-            <Part position={[0, 0.055, -0.52]} args={[0.012, 8, 8]} geo="sphere" color="#e8e0c0" />
+            <Part position={[0, 0.04, -0.28]} args={[0.02, 0.015, 0.42]} color="#2f2f36" />
+            {/* brass bead sight */}
+            <Part position={[0, 0.055, -0.52]} args={[0.012, 8, 8]} geo="sphere" color="#e0bc58" />
             {/* forend wood */}
             <Part position={[0, -0.03, -0.18]} args={[0.1, 0.06, 0.22]} color="#7a4a28" />
           </group>
@@ -782,20 +787,25 @@ const FP_POSE_DEFAULT = { position: [0.02, 0.02, -0.1], rotation: [0.06, 0.08, 0
 export function FpGun({ weaponId, children, slideRef, breakRef, boltRef, chargeRef }) {
   const id = weaponId || 'm1911';
   const pose = FP_POSE[id] ?? FP_POSE_DEFAULT;
+  const useGlb = hasGlbGun(id);
 
   return (
     <group position={pose.position} rotation={pose.rotation}>
-      <GunParts
-        weaponId={id}
-        Part={FpPart}
-        omitMag
-        anim={{
-          slide: slideRef,
-          breakOpen: breakRef,
-          bolt: boltRef,
-          charge: chargeRef,
-        }}
-      />
+      {useGlb ? (
+        <GlbGunMesh weaponId={id} fp />
+      ) : (
+        <GunParts
+          weaponId={id}
+          Part={FpPart}
+          omitMag
+          anim={{
+            slide: slideRef,
+            breakOpen: breakRef,
+            bolt: boltRef,
+            charge: chargeRef,
+          }}
+        />
+      )}
       {children}
     </group>
   );
@@ -870,7 +880,11 @@ export function WorldGun({ weaponId, scale = 1 }) {
       rotation={[0.15, 0, -0.05]}
       scale={scale * 0.85}
     >
-      <GunParts weaponId={id} Part={WorldPart} />
+      {hasGlbGun(id) ? (
+        <GlbGunMesh weaponId={id} />
+      ) : (
+        <GunParts weaponId={id} Part={WorldPart} />
+      )}
     </group>
   );
 }
@@ -880,7 +894,11 @@ export function DisplayGun({ weaponId, scale = 1 }) {
   const id = weaponId || 'm1911';
   return (
     <group scale={scale} rotation={[0, Math.PI * 0.15, 0.08]}>
-      <GunParts weaponId={id} Part={WorldPart} />
+      {hasGlbGun(id) ? (
+        <GlbGunMesh weaponId={id} />
+      ) : (
+        <GunParts weaponId={id} Part={WorldPart} />
+      )}
     </group>
   );
 }

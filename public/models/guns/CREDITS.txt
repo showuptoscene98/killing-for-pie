@@ -1,0 +1,3 @@
+Gun models from Quaternius Ultimate Gun Pack (CC0 / Public Domain)
+https://quaternius.com / https://opengameart.org/content/low-poly-guns-pack
+Converted OBJ -> glTF via obj2gltf for Killing for Pie!

@@ -240,7 +240,14 @@ const WALLBUYS = [
   {
     id: 'wb_sniper',
     weaponId: 'sniper',
-    position: [0, 1.35, 14.825],
+    position: [-3.5, 1.35, 14.825],
+    rotation: [0, Math.PI, 0],
+    room: 'north',
+  },
+  {
+    id: 'wb_mosin',
+    weaponId: 'mosin',
+    position: [3.5, 1.35, 14.825],
     rotation: [0, Math.PI, 0],
     room: 'north',
   },

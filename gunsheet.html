@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gun contact sheet — Killing for Pie!</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 18px 20px 28px;
+        background: #0a0806;
+        color: #e8e0d0;
+        font: 14px/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace;
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin: 0 0 16px;
+        color: #d9b86a;
+      }
+      h1 span {
+        color: #7d7466;
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        --card-h: 210px;
+      }
+      .card {
+        border: 1px solid #2b2419;
+        background: #15120f;
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .card > div:first-child,
+      canvas {
+        display: block;
+        width: 100% !important;
+        height: var(--card-h) !important;
+      }
+      .cap {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+        padding: 7px 9px;
+        border-top: 1px solid #2b2419;
+        background: #100e0b;
+      }
+      .cap b { color: #e8dcc0; font-weight: 700; }
+      .cap span { color: #6f6659; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/devtools/gunsheet.jsx"></script>
+  </body>
+</html>

@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect } from 'react';
+import { Suspense, useCallback, useLayoutEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { useGame } from './GameContext';
 import MapWorld from './map/MapWorld';
@@ -92,7 +92,9 @@ export default function GameCanvas({ coop = false }) {
       performance={{ min: 0.5 }}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <Scene coop={coop} />
+      <Suspense fallback={null}>
+        <Scene coop={coop} />
+      </Suspense>
     </Canvas>
   );
 }

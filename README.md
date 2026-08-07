@@ -1,70 +1,54 @@
-# Getting Started with Create React App
+# Killing for Pie!
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Grim cel-shaded zombie survival FPS — hold the bunker, board the windows, bank scrap, and squad up with friends.
 
-## Available Scripts
+**Live:** https://showuptoscene98.github.io/killing-for-pie/
 
-In the project directory, you can run:
+## Stack
 
-### `npm start`
+- Vite 8 + React 19 + TypeScript (incremental)
+- Three.js / React Three Fiber
+- PeerJS co-op (online) + optional LAN WebSocket relay
+- Supabase (guest friends, lobbies, alerts)
+- Electron thin shell loads the live Pages build
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Dev
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```bash
+cd zombie-game
+npm install
+cp .env.example .env.local   # add VITE_SUPABASE_* if using social
+npm start                    # Vite + LAN coop relay
+```
 
-### `npm test`
+```bash
+npm test          # vitest
+npm run verify    # typecheck + lint + test
+npm run build     # production → build/
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Desktop
 
-### `npm run build`
+```bash
+npm run electron:dev    # local CRA/Vite + Electron
+npm run electron:live   # packaged-style: load GitHub Pages URL
+npm run dist            # Windows installer via electron-builder
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Gun models
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Conventional firearms use **Quaternius Ultimate Gun Pack** (CC0) meshes under `public/models/guns/` — recolored to the muddy cel palette. Fantasy weapons (Pie Ray, Crust Cannon, Spatula, Rakia) stay procedural.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+See `public/models/guns/CREDITS.txt`.
 
-### `npm run eject`
+**Bolt-action sniper:** Mosin Nagant (`mosin`) — manual bolt cycle, stripper-clip reload, wall-buy on Sofia + Pie Yard.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Supabase social
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. Apply migrations in `supabase/migrations/`
+2. Enable **Anonymous Sign-Ins**
+3. Set `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (local `.env.local`, Pages via Actions secrets)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Deploy
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Push to `master` → `.github/workflows/deploy-pages.yml` builds with Vite and publishes to GitHub Pages.
