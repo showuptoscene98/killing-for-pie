@@ -28,6 +28,11 @@ import { BARRICADE, REVIVE } from '../constants';
 import { tickHealthRegen } from '../systems/HealthRegen';
 import { play } from '../audio/sound';
 import { inputState } from '../player/PlayerControls';
+import {
+  canPlayerInteract,
+  sanitizeFireRay,
+  sanitizePlayerPosition,
+} from './hostValidation';
 
 const SEND_HZ = 15;
 const SNAP_HZ = 10;
@@ -160,11 +165,26 @@ export default function CoopSync() {
             p.reviveTargetId = null;
             return;
           }
-          p.position.x = msg.x;
-          p.position.y = msg.y;
-          p.position.z = msg.z;
-          p.yaw = msg.yaw;
-          p.pitch = msg.pitch;
+          // Host is authoritative: bound the claim to the map and to what the
+          // player could actually have covered since its last packet. A rejected
+          // claim leaves the previous position standing rather than writing NaN
+          // into world state, which used to go straight back out in the snapshot.
+          const now = performance.now();
+          const elapsed = p._lastInputAt ? (now - p._lastInputAt) / 1000 : 0;
+          const moved = sanitizePlayerPosition(
+            p.position,
+            { x: msg.x, y: msg.y, z: msg.z },
+            elapsed,
+            getActiveMap()?.worldBound
+          );
+          if (moved) {
+            p.position.x = moved.x;
+            p.position.y = moved.y;
+            p.position.z = moved.z;
+            p._lastInputAt = now;
+          }
+          if (Number.isFinite(msg.yaw)) p.yaw = msg.yaw;
+          if (Number.isFinite(msg.pitch)) p.pitch = msg.pitch;
           p.reviveTargetId = msg.reviveTargetId || null;
           // Host owns loadout — clients get it back via snap
           if (typeof msg.activeWeapon === 'number') p.activeWeapon = msg.activeWeapon;
@@ -185,11 +205,9 @@ export default function CoopSync() {
           return;
         }
         if (msg.type === 'fire' && msg.ray) {
-          pendingHits.current.push({
-            peerId,
-            ray: msg.ray,
-            weaponId: msg.weaponId,
-          });
+          // ads was being dropped here, so a scoped client's shot always
+          // resolved with hipfire spread on the host.
+          pendingHits.current.push({ peerId, ray: msg.ray, ads: !!msg.ads });
           return;
         }
         if (msg.type === 'interact' && msg.prompt) {
@@ -326,16 +344,20 @@ function tickHost({
     ) {
       continue;
     }
+    // Resolve the shot with whatever is actually in the shooter's hand. The old
+    // code preferred the client's claimed weaponId and only charged ammo when
+    // the claim matched the slot — so claiming a Crust Cannon while holding a
+    // pistol fired one, for free.
     const slot = shooter.weapons[shooter.activeWeapon];
-    const def = WEAPONS[hit.weaponId] || (slot && WEAPONS[slot.id]) || WEAPONS.m1911;
-    if (slot && slot.id === def.id) {
-      if (!def.melee) {
-        if (shooter.reloading || slot.mag <= 0) continue;
-        slot.mag -= 1;
-      }
+    const def = (slot && WEAPONS[slot.id]) || WEAPONS.m1911;
+    if (!def.melee) {
+      if (!slot || shooter.reloading || slot.mag <= 0) continue;
+      slot.mag -= 1;
     }
-    const origin = new THREE.Vector3(hit.ray.ox, hit.ray.oy, hit.ray.oz);
-    const dir = new THREE.Vector3(hit.ray.dx, hit.ray.dy, hit.ray.dz).normalize();
+    const shot = sanitizeFireRay(hit.ray, shooter.position);
+    if (!shot) continue;
+    const origin = new THREE.Vector3(shot.origin.x, shot.origin.y, shot.origin.z);
+    const dir = new THREE.Vector3(shot.dir.x, shot.dir.y, shot.dir.z);
     const score = {
       points: shooter.points,
       pointsMult: shooter.pointsMult || state.pointsMult || 1,
@@ -377,6 +399,9 @@ function tickHost({
     ) {
       continue;
     }
+    // Clients author their own prompts, so without this a peer could open any
+    // door or buy off any wall from wherever it happened to be standing.
+    if (!canPlayerInteract(getActiveMap(), it.prompt, p.position)) continue;
     applyInteractForPlayer(state, p, it.prompt);
   }
 

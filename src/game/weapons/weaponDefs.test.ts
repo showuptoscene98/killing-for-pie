@@ -87,8 +87,9 @@ describe('viewmodel lookups', () => {
   });
 
   it('gives the longest guns the furthest muzzles', () => {
-    expect(muzzleOffset('mosin')[2]).toBeLessThan(muzzleOffset('sniper')[2]);
-    expect(muzzleOffset('sniper')[2]).toBeLessThan(muzzleOffset('m1911')[2]);
+    const reach = (id: string) => muzzleOffset(id)[2] as number;
+    expect(reach('mosin')).toBeLessThan(reach('sniper'));
+    expect(reach('sniper')).toBeLessThan(reach('m1911'));
   });
 
   it('hides reload-only props at rest, but keeps real magazines visible', () => {
@@ -160,8 +161,12 @@ describe('map wall-buys', () => {
 
   it('anchors every wall-buy to a room the map declares', () => {
     for (const [mapId, map] of Object.entries(MAPS)) {
+      const rooms = map.ROOMS as Record<string, unknown> | undefined;
       for (const buy of map.WALLBUYS ?? []) {
-        expect(map.ROOMS?.[buy.room], `${mapId}/${buy.id} in unknown room "${buy.room}"`).toBeDefined();
+        expect(
+          rooms?.[buy.room],
+          `${mapId}/${buy.id} in unknown room "${buy.room}"`
+        ).toBeDefined();
       }
     }
   });

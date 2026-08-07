@@ -1,4 +1,67 @@
-export const WEAPONS = {
+export type WeaponId =
+  | 'm1911'
+  | 'm14'
+  | 'mp5'
+  | 'olympia'
+  | 'sniper'
+  | 'mosin'
+  | 'ak47'
+  | 'raygun'
+  | 'thundergun'
+  | 'spatula'
+  | 'rakia';
+
+export interface WeaponDef {
+  id: WeaponId;
+  name: string;
+  damage: number;
+  headMultiplier: number;
+  /** Seconds between shots. Doubles as the manual-action window. */
+  fireRate: number;
+  magSize: number;
+  reserve: number;
+  reloadTime: number;
+  spread: number;
+  recoil: number;
+  automatic: boolean;
+
+  /** Buyable off a wall. Absent means mystery box only. */
+  wallCost?: number;
+  ammoCost?: number;
+  mystery?: boolean;
+
+  /** Shotguns: damage is divided by sqrt(pellets) per pellet. */
+  pellets?: number;
+  /** How many zombies one shot passes through, including the first. */
+  penetrate?: number;
+  penetrateFalloff?: number;
+  splash?: number;
+
+  adsSpread?: number;
+  adsFov?: number;
+  adsSens?: number;
+
+  /** Manual action; see the Mosin for how boltCycleTime drives the viewmodel. */
+  boltAction?: boolean;
+  boltCycleTime?: number;
+
+  melee?: boolean;
+  meleeRange?: number;
+  meleeKnockback?: number;
+
+  projectile?: 'pie';
+  projectileSpeed?: number;
+  projectileGravity?: number;
+  splashRadius?: number;
+}
+
+export interface WeaponSlot {
+  id: WeaponId;
+  mag: number;
+  reserve: number;
+}
+
+export const WEAPONS: Record<WeaponId, WeaponDef> = {
   m1911: {
     id: 'm1911',
     name: 'M1911',
@@ -195,7 +258,7 @@ export const WEAPONS = {
 };
 
 /** Pool the mystery box can roll (excludes starting pistol) */
-export const MYSTERY_BOX_POOL = [
+export const MYSTERY_BOX_POOL: WeaponId[] = [
   'm14',
   'mp5',
   'olympia',
@@ -212,10 +275,11 @@ export const MYSTERY_BOX_COST = 950;
 export const MYSTERY_SPIN_TIME = 2.0;
 export const MYSTERY_OFFER_TIME = 10;
 
-export function createWeaponLoadout(weaponId) {
-  const def = WEAPONS[weaponId];
+export function createWeaponLoadout(weaponId: string): WeaponSlot {
+  const def = WEAPONS[weaponId as WeaponId];
   if (!def) {
-    return { id: 'm1911', mag: 8, reserve: 80 };
+    const fallback = WEAPONS.m1911;
+    return { id: fallback.id, mag: fallback.magSize, reserve: fallback.reserve };
   }
   return {
     id: def.id,
@@ -224,7 +288,11 @@ export function createWeaponLoadout(weaponId) {
   };
 }
 
-export function giveWeaponToLoadout(weapons, activeWeapon, weaponId) {
+export function giveWeaponToLoadout(
+  weapons: WeaponSlot[],
+  activeWeapon: number,
+  weaponId: string
+): { weapons: WeaponSlot[]; activeWeapon: number } {
   const loadout = createWeaponLoadout(weaponId);
   const next = weapons.map((w) => ({ ...w }));
   let active = activeWeapon;
