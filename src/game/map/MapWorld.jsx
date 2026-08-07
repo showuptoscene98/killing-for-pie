@@ -1880,6 +1880,7 @@ export default function MapWorld() {
   });
 
   const doorOpenMap = useMemo(() => {
+    void openKey; // invalidate when door/room open flags change (state lives on stateRef)
     const s = stateRef.current;
     const open = {};
     map.DOORS.forEach((d) => {
@@ -1889,13 +1890,14 @@ export default function MapWorld() {
   }, [openKey, map, stateRef]);
 
   const roomOpen = useMemo(() => {
+    void openKey; // invalidate when door/room open flags change (state lives on stateRef)
     const s = stateRef.current;
     const open = {};
     Object.keys(s.rooms).forEach((id) => {
       open[id] = s.rooms[id].open;
     });
     return open;
-  }, [openKey, map, stateRef]);
+  }, [openKey, stateRef]);
 
   const floors = useMemo(() => map.FLOORS, [map]);
 
