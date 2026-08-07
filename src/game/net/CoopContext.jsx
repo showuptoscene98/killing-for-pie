@@ -55,6 +55,13 @@ export function CoopProvider({ children }) {
   useEffect(() => {
     const session = ensureSession();
     return session.on((event, payload) => {
+      if (event === 'signalingLost') {
+        // Stop advertising in the server browser — PeerJS id is gone.
+        socialRef.current?.closeLobby?.();
+        if (payload?.role === 'host' && !session.started) {
+          setError('Lost online connection — recreate invite to stay listed');
+        }
+      }
       if (event === 'status') {
         setPhase(payload.status);
         setError(payload.error || '');
@@ -169,6 +176,10 @@ export function CoopProvider({ children }) {
             mapId: mid,
             playerCount: 1,
             isPublic: social.listPublic !== false,
+            getAlive: () => {
+              const s = sessionRef.current;
+              return !!(s && s.role === 'host' && s.isPeerSignalingLive?.());
+            },
           });
         }
       } catch (err) {

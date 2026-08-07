@@ -16,15 +16,45 @@ const RECONNECT_BASE_MS = 600;
 const PEER_HOST_TRIES = 5;
 const PEER_DISCONNECT_GRACE_MS = 8000;
 
+/**
+ * PeerJS `config.iceServers` REPLACES defaults — it does not merge. An earlier
+ * STUN-only list stripped PeerJS Cloud's public TURN relay, so friends on
+ * different NATs (server-browser joins) timed out even when the host was live.
+ */
 const PEER_OPTIONS = {
   debug: 0,
-  // Default binarypack is fine for small control msgs; we JSON.stringify ourselves
-  // for start/lobby so both sides always decode the same way.
+  host: '0.peerjs.com',
+  port: 443,
+  path: '/',
+  secure: true,
+  pingInterval: 5000,
   config: {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun.cloudflare.com:3478' },
+      // PeerJS Cloud public TURN (was the default before we overrode iceServers)
+      {
+        urls: 'turn:eu-0.turn.peerjs.com:3478',
+        username: 'peerjs',
+        credential: 'peerjsp',
+      },
+      // Open Relay fallbacks (UDP + TCP)
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
     ],
   },
 };
@@ -718,16 +748,49 @@ export class CoopSession {
   _waitConnOpen(conn) {
     return new Promise((resolve, reject) => {
       let settled = false;
+      const peer = this.peer;
       const done = (fn) => (arg) => {
         if (settled) return;
         settled = true;
         clearTimeout(t);
+        if (peer && onPeerErr) {
+          try {
+            peer.off('error', onPeerErr);
+          } catch (_) {
+            /* older peerjs */
+          }
+        }
         fn(arg);
       };
+      const onPeerErr = (err) => {
+        const type = err?.type || '';
+        if (type === 'peer-unavailable') {
+          done(() =>
+            reject(
+              new Error(
+                'No host found for that code — they may have left camp or lost PeerJS signaling'
+              )
+            )
+          )();
+          return;
+        }
+        if (type === 'network' || type === 'server-error') {
+          done(() =>
+            reject(new Error(err?.message || 'PeerJS network error — retry join'))
+          )();
+        }
+      };
       const t = setTimeout(
-        done(() => reject(new Error('Timed out connecting to host'))),
+        done(() =>
+          reject(
+            new Error(
+              'Timed out reaching host — different networks need TURN; retry or use the same Wi‑Fi'
+            )
+          )
+        ),
         20000
       );
+      if (peer) peer.on('error', onPeerErr);
       conn.on(
         'open',
         done(() => resolve())
@@ -741,6 +804,11 @@ export class CoopSession {
       // open may have fired between connect() and this listener
       if (conn.open) done(() => resolve())();
     });
+  }
+
+  /** True when this host is still registered with PeerJS Cloud (joinable). */
+  isPeerSignalingLive() {
+    return !!(this.peer && !this.destroyed && this.peer.open && !this.peer.destroyed);
   }
 
   _wireHostPeer(peer) {
@@ -768,12 +836,21 @@ export class CoopSession {
 
     peer.on('disconnected', () => {
       if (this.destroyed || this._intentionalClose) return;
-      console.warn('[coop] signaling disconnected — reconnecting');
+      console.warn('[coop] host signaling disconnected — reconnecting');
       try {
         peer.reconnect();
       } catch (_) {
+        this._emit('signalingLost', { role: 'host' });
         this._scheduleDisconnectGrace('Lost PeerJS signaling connection');
       }
+      // If reconnect doesn't bring us back, delist so the server browser
+      // stops advertising a dead PeerJS room.
+      setTimeout(() => {
+        if (this.destroyed || this._intentionalClose) return;
+        if (this.role === 'host' && !this.isPeerSignalingLive()) {
+          this._emit('signalingLost', { role: 'host' });
+        }
+      }, 4000);
     });
   }
 
@@ -782,7 +859,10 @@ export class CoopSession {
       if (this.destroyed || this._intentionalClose) return;
       const type = err?.type || '';
       if (type === 'peer-unavailable') {
-        this._setStatus('error', 'No host found for that code');
+        this._setStatus(
+          'error',
+          'No host found for that code — they may have left camp'
+        );
         return;
       }
       console.warn('[coop peer]', err);

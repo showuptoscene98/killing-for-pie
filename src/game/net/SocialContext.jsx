@@ -371,7 +371,15 @@ export function SocialProvider({ children }) {
   }, []);
 
   const publishLobby = useCallback(
-    async ({ roomCode, mapId, playerCount = 1, isPublic = listPublic }) => {
+    async ({
+      roomCode,
+      mapId,
+      playerCount = 1,
+      isPublic = listPublic,
+      // Return false to delist — e.g. PeerJS signaling dropped while Supabase
+      // would otherwise keep advertising a dead room in the server browser.
+      getAlive = null,
+    } = {}) => {
       const sb = getSupabase();
       if (!sb || !userId || !roomCode) return null;
 
@@ -406,6 +414,13 @@ export function SocialProvider({ children }) {
       heartbeatRef.current = setInterval(async () => {
         const id = lobbyIdRef.current;
         if (!id) return;
+        if (typeof getAlive === 'function' && !getAlive()) {
+          console.warn('[social] host PeerJS offline — closing lobby listing');
+          stopHeartbeat();
+          lobbyIdRef.current = null;
+          await sb.from('lobbies').update({ status: 'closed' }).eq('id', id);
+          return;
+        }
         await sb
           .from('lobbies')
           .update({ heartbeat_at: new Date().toISOString() })

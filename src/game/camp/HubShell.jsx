@@ -851,8 +851,11 @@ function HubShellInner({
         clearInviteFromUrl();
         setDeployOpen(false);
         onJoinConsumed?.();
-      } catch {
-        setJoinHint('Could not join — check the code and that the host is still in camp');
+      } catch (err) {
+        setJoinHint(
+          err?.message ||
+            'Could not join — check the code and that the host is still in camp'
+        );
         setDeployOpen(true);
       } finally {
         setSquadBusy(false);
@@ -1066,8 +1069,12 @@ function HubShellInner({
         // Stay on squad panel so roster is visible; Esc / Walk Camp to close
         setDeployOpen(true);
         setDeployMode('join');
-      } catch {
-        setJoinHint('Could not join — check the code and that the host is still in camp');
+        setJoinHint('');
+      } catch (err) {
+        setJoinHint(
+          err?.message ||
+            'Could not join — check the code and that the host is still in camp'
+        );
         setDeployOpen(true);
       } finally {
         setSquadBusy(false);
