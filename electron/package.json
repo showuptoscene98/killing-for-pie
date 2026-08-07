@@ -1,0 +1,57 @@
+{
+  "name": "killing-for-pie",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Killing for Pie! desktop shell (loads Netlify)",
+  "author": "Killing for Pie",
+  "main": "main.js",
+  "scripts": {
+    "dist": "electron-builder --win",
+    "start": "electron ."
+  },
+  "build": {
+    "extends": null,
+    "appId": "com.killingforpie.game",
+    "productName": "Killing for Pie",
+    "copyright": "Copyright © Killing for Pie",
+    "directories": {
+      "output": "../dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "offline.html",
+      "package.json"
+    ],
+    "asar": true,
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Killing for Pie",
+      "artifactName": "${productName}-${version}-Setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-Portable.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^37.2.6",
+    "electron-builder": "^26.0.12"
+  }
+}

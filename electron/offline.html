@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Killing for Pie! — Offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: Georgia, 'Times New Roman', serif;
+        background: radial-gradient(ellipse at 50% 20%, #1a1610 0%, #0a0806 70%);
+        color: #e8e2d4;
+        padding: 2rem;
+        text-align: center;
+      }
+      h1 {
+        font-size: 1.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin: 0 0 0.75rem;
+        color: #c9a227;
+      }
+      p {
+        max-width: 28rem;
+        margin: 0 auto 1.25rem;
+        line-height: 1.5;
+        opacity: 0.8;
+        font-size: 0.95rem;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+      button {
+        font: inherit;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.7rem 1.1rem;
+        border: 1px solid rgba(201, 162, 39, 0.55);
+        background: rgba(201, 162, 39, 0.12);
+        color: #e8c84a;
+        cursor: pointer;
+      }
+      button:hover {
+        background: rgba(201, 162, 39, 0.22);
+      }
+      button.ghost {
+        border-color: rgba(232, 226, 212, 0.25);
+        background: transparent;
+        color: #e8e2d4;
+      }
+      code {
+        font-family: Consolas, monospace;
+        font-size: 0.8rem;
+        color: #c9a227;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <h1>Killing for Pie!</h1>
+      <p>
+        Couldn&apos;t reach the live game. Check your internet, then retry.
+        The desktop app loads
+        <code>showuptoscene98.github.io/killing-for-pie</code>
+        so updates ship when we deploy — no new download needed.
+      </p>
+      <div class="row">
+        <button type="button" id="retry">Retry</button>
+        <button type="button" class="ghost" id="browser">Open in browser</button>
+      </div>
+    </div>
+    <script>
+      const retry = document.getElementById('retry');
+      const browser = document.getElementById('browser');
+      retry.addEventListener('click', () => {
+        if (window.kfpDesktop?.reloadGame) window.kfpDesktop.reloadGame();
+        else location.reload();
+      });
+      browser.addEventListener('click', () => {
+        if (window.kfpDesktop?.openInBrowser) window.kfpDesktop.openInBrowser();
+      });
+    </script>
+  </body>
+</html>
