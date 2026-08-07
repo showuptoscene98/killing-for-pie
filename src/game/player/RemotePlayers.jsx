@@ -87,26 +87,26 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
       const d = bodyDims(g);
       if (torso.current) {
         torso.current.scale.set(
-          d.torso[0] / 0.52,
-          d.torso[1] / 0.72,
-          d.torso[2] / 0.52
+          d.torso[0] / 0.34,
+          d.torso[1] / 0.76,
+          d.torso[2] / 0.34
         );
         torso.current.position.y = d.torsoY;
       }
       if (pantsRMesh.current) {
         pantsRMesh.current.position.x = d.legX;
         pantsRMesh.current.scale.set(
-          d.leg[0] / 0.18,
-          d.leg[1] / 0.7,
-          d.leg[2] / 0.18
+          d.leg[0] / 0.14,
+          d.leg[1] / 0.72,
+          d.leg[2] / 0.14
         );
       }
       if (pantsLMesh.current) {
         pantsLMesh.current.position.x = -d.legX;
         pantsLMesh.current.scale.set(
-          d.leg[0] / 0.18,
-          d.leg[1] / 0.7,
-          d.leg[2] / 0.18
+          d.leg[0] / 0.14,
+          d.leg[1] / 0.72,
+          d.leg[2] / 0.14
         );
       }
       if (headMesh.current) {
@@ -162,16 +162,16 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
 
   return (
     <group ref={root} visible={false}>
-      <mesh ref={pantsRMesh} position={[0.12, 0.35, 0]} scale={[1, 1, 1.11]} castShadow>
-        <capsuleGeometry args={[0.09, 0.52, 8, 14]} />
+      <mesh ref={pantsRMesh} position={[0.11, 0.36, 0]} castShadow>
+        <capsuleGeometry args={[0.07, 0.58, 5, 10]} />
         <Toon ref={pantsR} color="#2a241c" />
       </mesh>
-      <mesh ref={pantsLMesh} position={[-0.12, 0.35, 0]} scale={[1, 1, 1.11]} castShadow>
-        <capsuleGeometry args={[0.09, 0.52, 8, 14]} />
+      <mesh ref={pantsLMesh} position={[-0.11, 0.36, 0]} castShadow>
+        <capsuleGeometry args={[0.07, 0.58, 5, 10]} />
         <Toon ref={pantsL} color="#2a241c" />
       </mesh>
-      <mesh ref={torso} position={[0, 1.05, 0]} scale={[1, 1, 0.58]} castShadow>
-        <capsuleGeometry args={[0.26, 0.2, 8, 14]} />
+      <mesh ref={torso} position={[0, 1.05, 0]} scale={[1, 1, 0.82]} castShadow>
+        <capsuleGeometry args={[0.17, 0.42, 6, 12]} />
         <Toon
           ref={torsoMat}
           color="#c4b48a"
@@ -186,8 +186,8 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
           Material={Toon}
         />
       )}
-      <mesh ref={accentMesh} position={[0.16, 1.15, 0.16]} scale={[1, 1, 0.4]}>
-        <sphereGeometry args={[0.08, 10, 10]} />
+      <mesh ref={accentMesh} position={[0.14, 1.15, 0.14]} rotation={[Math.PI / 2, 0, 0.3]}>
+        <capsuleGeometry args={[0.04, 0.04, 4, 8]} />
         <Toon
           ref={accentMat}
           color="#8a2020"
@@ -195,38 +195,43 @@ function RemotePlayerModel({ index, remotesRef, hideGun = false }) {
           emissiveIntensity={0.25}
         />
       </mesh>
-      <mesh position={[0.36, 1.0, 0.15]} rotation={[0.35, 0, -0.2]} castShadow>
-        <capsuleGeometry args={[0.065, 0.37, 6, 12]} />
+      <mesh position={[0.32, 1.0, 0.12]} rotation={[0.35, 0, -0.2]} castShadow>
+        <capsuleGeometry args={[0.05, 0.42, 5, 10]} />
         <Toon ref={sleeveR} color="#a89878" />
       </mesh>
-      <mesh position={[-0.36, 1.0, 0.15]} rotation={[0.35, 0, 0.2]} castShadow>
-        <capsuleGeometry args={[0.065, 0.37, 6, 12]} />
+      <mesh position={[-0.32, 1.0, 0.12]} rotation={[0.35, 0, 0.2]} castShadow>
+        <capsuleGeometry args={[0.05, 0.42, 5, 10]} />
         <Toon ref={sleeveL} color="#a89878" />
       </mesh>
       <mesh ref={headMesh} position={[0, 1.52, 0]} castShadow>
-        <sphereGeometry args={[0.17, 14, 12]} />
+        <capsuleGeometry args={[0.13, 0.12, 5, 12]} />
         <Toon ref={headMat} color="#a89878" />
       </mesh>
       {hairOutfit && <FemaleHair o={hairOutfit} y={d.headY - 0.03} />}
       <mesh ref={hatChef} position={[0, 1.82, 0]} visible={false}>
-        <cylinderGeometry args={[0.18, 0.2, 0.32, 14]} />
+        <cylinderGeometry args={[0.16, 0.18, 0.32, 12]} />
         <Toon color="#c4b48a" />
       </mesh>
       <mesh
         ref={hatDelivery}
-        position={[0, 1.68, 0]}
+        position={[0, 1.7, 0]}
         rotation={[-0.15, 0, 0]}
         visible={false}
       >
-        <cylinderGeometry args={[0.2, 0.22, 0.1, 14]} />
+        <cylinderGeometry args={[0.18, 0.2, 0.1, 12]} />
         <Toon color="#2a241c" />
       </mesh>
       <mesh ref={hoodHazmat} position={[0, 1.68, 0]} visible={false}>
-        <sphereGeometry args={[0.2, 12, 12]} />
+        <capsuleGeometry args={[0.16, 0.08, 5, 10]} />
         <Toon color="#6a5a28" />
       </mesh>
-      <mesh ref={maskMesh} position={[0, 1.52, 0.14]} visible={false} scale={[1, 0.7, 0.45]}>
-        <sphereGeometry args={[0.15, 10, 8]} />
+      <mesh
+        ref={maskMesh}
+        position={[0, 1.52, 0.14]}
+        visible={false}
+        rotation={[Math.PI / 2, 0, 0]}
+      >
+        <capsuleGeometry args={[0.08, 0.06, 4, 8]} />
         <Toon color="#4a5c30" transparent opacity={0.75} />
       </mesh>
 

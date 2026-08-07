@@ -425,8 +425,9 @@ export default function ZombieModel({ zombiesRef, index }) {
   return (
     <group ref={root} visible={false}>
       <group ref={torso}>
-        <mesh position={[0, 1.02, 0]} scale={[1, 1, 0.58]} castShadow>
-          <capsuleGeometry args={[0.26, 0.2, 8, 14]} />
+        {/* Sausage torso — long shaft, modest radius */}
+        <mesh position={[0, 1.02, 0]} scale={[1, 1, 0.82]} castShadow>
+          <capsuleGeometry args={[0.17, 0.42, 6, 12]} />
           <Toon
             ref={bodyMat}
             color={pal0.body}
@@ -435,14 +436,14 @@ export default function ZombieModel({ zombiesRef, index }) {
           />
         </mesh>
 
-        <mesh position={[0, 0.58, 0]} scale={[1, 1, 0.55]} castShadow>
-          <capsuleGeometry args={[0.24, 0.02, 6, 12]} />
+        <mesh position={[0, 0.58, 0]} scale={[1, 1, 0.8]} castShadow>
+          <capsuleGeometry args={[0.15, 0.1, 5, 10]} />
           <Toon color={pal0.bodyDark} />
         </mesh>
 
         <group ref={head} position={[0, 1.52, 0]}>
-          <mesh position={[0, 0.08, 0]} castShadow>
-            <sphereGeometry args={[0.175, 14, 12]} />
+          <mesh position={[0, 0.1, 0]} castShadow>
+            <capsuleGeometry args={[0.13, 0.12, 5, 12]} />
             <Toon
               ref={headMat}
               color={pal0.head}
@@ -450,16 +451,16 @@ export default function ZombieModel({ zombiesRef, index }) {
               emissiveIntensity={0.1}
             />
           </mesh>
-          <mesh position={[0, -0.1, 0.1]} scale={[1, 0.55, 0.85]}>
-            <sphereGeometry args={[0.12, 10, 8]} />
+          <mesh position={[0, -0.08, 0.02]}>
+            <capsuleGeometry args={[0.07, 0.04, 4, 8]} />
             <Toon color={pal0.bodyDark} />
           </mesh>
-          <mesh position={[-0.08, 0.1, 0.155]}>
-            <sphereGeometry args={[0.038, 8, 8]} />
+          <mesh position={[-0.07, 0.12, 0.13]} rotation={[Math.PI / 2, 0, 0]}>
+            <capsuleGeometry args={[0.028, 0.01, 3, 8]} />
             <Toon color={DD.accent} emissive={DD.accent} emissiveIntensity={1.6} />
           </mesh>
-          <mesh position={[0.08, 0.1, 0.155]}>
-            <sphereGeometry args={[0.038, 8, 8]} />
+          <mesh position={[0.07, 0.12, 0.13]} rotation={[Math.PI / 2, 0, 0]}>
+            <capsuleGeometry args={[0.028, 0.01, 3, 8]} />
             <Toon color={DD.accent} emissive={DD.accent} emissiveIntensity={1.6} />
           </mesh>
         </group>
@@ -514,16 +515,16 @@ export default function ZombieModel({ zombiesRef, index }) {
             <Toon color="#2a1c14" />
           </mesh>
           {/* Snout */}
-          <mesh position={[0, 1.48, 0.28]} scale={[1, 0.75, 1.15]} castShadow>
-            <sphereGeometry args={[0.12, 10, 10]} />
+          <mesh position={[0, 1.5, 0.28]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <capsuleGeometry args={[0.08, 0.14, 4, 8]} />
             <Toon color="#c89098" />
           </mesh>
           <mesh position={[-0.05, 1.5, 0.42]}>
-            <sphereGeometry args={[0.025, 6, 6]} />
+            <capsuleGeometry args={[0.018, 0.01, 3, 6]} />
             <Toon color="#2a1c14" />
           </mesh>
           <mesh position={[0.05, 1.5, 0.42]}>
-            <sphereGeometry args={[0.025, 6, 6]} />
+            <capsuleGeometry args={[0.018, 0.01, 3, 6]} />
             <Toon color="#2a1c14" />
           </mesh>
           {/* Horns */}
@@ -611,35 +612,35 @@ export default function ZombieModel({ zombiesRef, index }) {
           </mesh>
         </group>
 
-        <group ref={leftUpper} position={[-0.34, 1.28, 0.02]}>
-          <mesh position={[0, -0.16, 0.04]} rotation={[0.15, 0, 0]} castShadow>
-            <capsuleGeometry args={[0.075, 0.19, 6, 12]} />
+        <group ref={leftUpper} position={[-0.3, 1.3, 0.02]}>
+          <mesh position={[0, -0.18, 0.04]} rotation={[0.15, 0, 0]} castShadow>
+            <capsuleGeometry args={[0.055, 0.28, 5, 10]} />
             <Toon color={pal0.body} />
           </mesh>
-          <group ref={leftFore} position={[0, -0.34, 0.06]}>
-            <mesh position={[0, -0.14, 0.04]} rotation={[0.2, 0, 0]} castShadow>
-              <capsuleGeometry args={[0.06, 0.18, 6, 12]} />
+          <group ref={leftFore} position={[0, -0.36, 0.06]}>
+            <mesh position={[0, -0.16, 0.04]} rotation={[0.2, 0, 0]} castShadow>
+              <capsuleGeometry args={[0.045, 0.26, 5, 10]} />
               <Toon color={pal0.body} />
             </mesh>
-            <mesh position={[0, -0.3, 0.1]}>
-              <sphereGeometry args={[0.065, 10, 10]} />
+            <mesh position={[0, -0.32, 0.08]} rotation={[0.6, 0, 0]}>
+              <capsuleGeometry args={[0.04, 0.05, 4, 8]} />
               <Toon color={pal0.head} />
             </mesh>
           </group>
         </group>
 
-        <group ref={rightUpper} position={[0.34, 1.28, 0.02]}>
-          <mesh position={[0, -0.16, 0.04]} rotation={[0.15, 0, 0]} castShadow>
-            <capsuleGeometry args={[0.075, 0.19, 6, 12]} />
+        <group ref={rightUpper} position={[0.3, 1.3, 0.02]}>
+          <mesh position={[0, -0.18, 0.04]} rotation={[0.15, 0, 0]} castShadow>
+            <capsuleGeometry args={[0.055, 0.28, 5, 10]} />
             <Toon color={pal0.body} />
           </mesh>
-          <group ref={rightFore} position={[0, -0.34, 0.06]}>
-            <mesh position={[0, -0.14, 0.04]} rotation={[0.2, 0, 0]} castShadow>
-              <capsuleGeometry args={[0.06, 0.18, 6, 12]} />
+          <group ref={rightFore} position={[0, -0.36, 0.06]}>
+            <mesh position={[0, -0.16, 0.04]} rotation={[0.2, 0, 0]} castShadow>
+              <capsuleGeometry args={[0.045, 0.26, 5, 10]} />
               <Toon color={pal0.body} />
             </mesh>
-            <mesh position={[0, -0.3, 0.1]}>
-              <sphereGeometry args={[0.065, 10, 10]} />
+            <mesh position={[0, -0.32, 0.08]} rotation={[0.6, 0, 0]}>
+              <capsuleGeometry args={[0.04, 0.05, 4, 8]} />
               <Toon color={pal0.head} />
             </mesh>
             <mesh
@@ -648,42 +649,42 @@ export default function ZombieModel({ zombiesRef, index }) {
               rotation={[Math.PI / 2, 0, 0]}
               visible={false}
             >
-              <torusGeometry args={[0.075, 0.014, 8, 14]} />
+              <torusGeometry args={[0.065, 0.012, 6, 12]} />
               <Toon color="#e8c84a" emissive="#e8c84a" emissiveIntensity={0.35} />
             </mesh>
           </group>
         </group>
       </group>
 
-      <group ref={leftThigh} position={[-0.14, 0.72, 0]}>
-        <mesh position={[0, -0.16, 0]} castShadow>
-          <capsuleGeometry args={[0.09, 0.16, 6, 12]} />
+      <group ref={leftThigh} position={[-0.12, 0.72, 0]}>
+        <mesh position={[0, -0.18, 0]} castShadow>
+          <capsuleGeometry args={[0.07, 0.26, 5, 10]} />
           <Toon color={pal0.bodyDark} />
         </mesh>
-        <group ref={leftShin} position={[0, -0.34, 0]}>
-          <mesh position={[0, -0.15, 0]} castShadow>
-            <capsuleGeometry args={[0.075, 0.17, 6, 12]} />
+        <group ref={leftShin} position={[0, -0.36, 0]}>
+          <mesh position={[0, -0.17, 0]} castShadow>
+            <capsuleGeometry args={[0.055, 0.28, 5, 10]} />
             <Toon color={pal0.bodyDark} />
           </mesh>
-          <mesh position={[0, -0.32, 0.06]} scale={[1, 0.45, 1.35]}>
-            <sphereGeometry args={[0.1, 10, 8]} />
+          <mesh position={[0, -0.34, 0.08]} rotation={[Math.PI / 2, 0, 0]}>
+            <capsuleGeometry args={[0.045, 0.12, 4, 8]} />
             <Toon color={DD.ink} />
           </mesh>
         </group>
       </group>
 
-      <group ref={rightThigh} position={[0.14, 0.72, 0]}>
-        <mesh position={[0, -0.16, 0]} castShadow>
-          <capsuleGeometry args={[0.09, 0.16, 6, 12]} />
+      <group ref={rightThigh} position={[0.12, 0.72, 0]}>
+        <mesh position={[0, -0.18, 0]} castShadow>
+          <capsuleGeometry args={[0.07, 0.26, 5, 10]} />
           <Toon color={pal0.bodyDark} />
         </mesh>
-        <group ref={rightShin} position={[0, -0.34, 0]}>
-          <mesh position={[0, -0.15, 0]} castShadow>
-            <capsuleGeometry args={[0.075, 0.17, 6, 12]} />
+        <group ref={rightShin} position={[0, -0.36, 0]}>
+          <mesh position={[0, -0.17, 0]} castShadow>
+            <capsuleGeometry args={[0.055, 0.28, 5, 10]} />
             <Toon color={pal0.bodyDark} />
           </mesh>
-          <mesh position={[0, -0.32, 0.06]} scale={[1, 0.45, 1.35]}>
-            <sphereGeometry args={[0.1, 10, 8]} />
+          <mesh position={[0, -0.34, 0.08]} rotation={[Math.PI / 2, 0, 0]}>
+            <capsuleGeometry args={[0.045, 0.12, 4, 8]} />
             <Toon color={DD.ink} />
           </mesh>
         </group>

@@ -164,46 +164,46 @@ function NpcBody({ npc, o, body, pants, sleeve, skin, accent, useKit, useCowboy,
   const nose = skin;
   return (
     <>
-      <mesh position={[-0.12, 0.45, 0]} scale={[1, 1, 1.1]} castShadow>
-        <capsuleGeometry args={[0.09, 0.72, 8, 14]} />
+      <mesh position={[-0.11, 0.45, 0]} castShadow>
+        <capsuleGeometry args={[0.07, 0.72, 5, 10]} />
         <Toon color={pants} />
       </mesh>
-      <mesh position={[0.12, 0.45, 0]} scale={[1, 1, 1.1]} castShadow>
-        <capsuleGeometry args={[0.09, 0.72, 8, 14]} />
+      <mesh position={[0.11, 0.45, 0]} castShadow>
+        <capsuleGeometry args={[0.07, 0.72, 5, 10]} />
         <Toon color={pants} />
       </mesh>
-      <mesh position={[0, 1.15, 0]} scale={[1, 1, 0.58]} castShadow>
-        <capsuleGeometry args={[0.275, 0.15, 8, 14]} />
+      <mesh position={[0, 1.15, 0]} scale={[1, 1, 0.82]} castShadow>
+        <capsuleGeometry args={[0.17, 0.42, 6, 12]} />
         <Toon color={body} />
       </mesh>
       {!useKit && !useCowboy && !useSamurai && !useSteve && !useSims && (
-        <mesh position={[0, 1.05, 0.17]} scale={[1, 0.55, 0.35]}>
-          <sphereGeometry args={[0.22, 10, 8]} />
+        <mesh position={[0, 1.05, 0.15]} rotation={[Math.PI / 2, 0, 0]}>
+          <capsuleGeometry args={[0.05, 0.28, 4, 8]} />
           <Toon color={accent} />
         </mesh>
       )}
       <mesh position={[0, 1.65, 0]} castShadow>
-        <sphereGeometry args={[0.175, 14, 12]} />
+        <capsuleGeometry args={[0.13, 0.12, 5, 12]} />
         <Toon color={skin} />
       </mesh>
       {!npc.hideFace && (
         <NpcFace face={{ nose, ...(npc.face || {}) }} hideMouth={hideMouth} />
       )}
-      <mesh position={[-0.38, 1.1, 0]} castShadow>
-        <capsuleGeometry args={[0.07, 0.41, 6, 12]} />
+      <mesh position={[-0.34, 1.1, 0]} castShadow>
+        <capsuleGeometry args={[0.05, 0.45, 5, 10]} />
         <Toon color={sleeve} />
       </mesh>
-      <mesh position={[0.38, 1.1, 0]} castShadow>
-        <capsuleGeometry args={[0.07, 0.41, 6, 12]} />
+      <mesh position={[0.34, 1.1, 0]} castShadow>
+        <capsuleGeometry args={[0.05, 0.45, 5, 10]} />
         <Toon color={sleeve} />
       </mesh>
-      <mesh position={[-0.38, 0.78, 0.02]} castShadow>
-        <sphereGeometry args={[0.07, 10, 10]} />
+      <mesh position={[-0.34, 0.78, 0.02]} rotation={[0.5, 0, 0]} castShadow>
+        <capsuleGeometry args={[0.04, 0.05, 4, 8]} />
         <Toon color={o?.glove || skin} />
       </mesh>
       {!useSamurai && (
-        <mesh position={[0.38, 0.78, 0.02]} castShadow>
-          <sphereGeometry args={[0.07, 10, 10]} />
+        <mesh position={[0.34, 0.78, 0.02]} rotation={[0.5, 0, 0]} castShadow>
+          <capsuleGeometry args={[0.04, 0.05, 4, 8]} />
           <Toon color={o?.glove || skin} />
         </mesh>
       )}
