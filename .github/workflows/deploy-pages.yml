@@ -24,7 +24,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm install
-      - run: npm run build
+      - run: CI=false npm run build
       # SPA fallback — GitHub Pages has no Netlify-style redirects
       - run: cp build/index.html build/404.html
       - uses: actions/upload-pages-artifact@v3

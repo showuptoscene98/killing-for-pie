@@ -8,7 +8,6 @@ import {
   FACE_OPTIONS,
   HAND_OPTIONS,
   EXTRA_OPTIONS,
-  CUSTOM_OUTFIT_ID,
   isCustomOutfitId,
   bodyIndex,
   bodyIdAt,
@@ -19,7 +18,6 @@ import {
   cycleHead,
   cycleFace,
   cycleHands,
-  resolveOutfit,
   getOutfit,
   getOutfitColor,
 } from '../player/outfits';
@@ -82,7 +80,6 @@ export default function CharacterCustomize() {
   const choiceIdx = outfitChoiceIndex(selectedId);
   const styleIdx = bodyIndex(loadout.body);
   const colorIdx = outfitColorIndex(colorId);
-  const outfit = resolveOutfit(loadout);
   const choiceMeta = getOutfit(selectedId);
   const color = getOutfitColor(colorId);
   const bodyUnlocked = isOutfitUnlocked?.(selectedId) ?? true;
