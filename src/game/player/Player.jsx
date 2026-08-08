@@ -446,8 +446,8 @@ function updateInteract(state, camera, remotesRef) {
     }
   });
 
-  // Mystery box — live spot (can relocate mid-match)
-  if (MYSTERY_BOX || state.mysteryBox?.position) {
+  // Mystery box — live spot (can relocate mid-match); hub has none
+  if (map.MYSTERY_BOX && state.mysteryBox?.position) {
     const live = mysteryBoxWorldPos(state, map);
     if (live) {
       const boxPos = new THREE.Vector3(live.x, live.y, live.z);

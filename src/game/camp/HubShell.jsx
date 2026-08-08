@@ -1266,7 +1266,7 @@ export default function HubShell({
   }
 
   return (
-    <GameProvider running bonuses={bonuses}>
+    <GameProvider running bonuses={{ ...bonuses, hub: true }}>
       <HubShellInner
         runSummary={runSummary}
         onDeploy={onDeploy}

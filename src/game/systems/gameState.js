@@ -25,10 +25,11 @@ export function createInitialGameState(bonuses = DEFAULT_BONUSES) {
     // Transit always opens on Airfield (nacht), not the deploy picker map
     map = getMap(transitStartMapId());
     setActiveMap(map.id);
-  } else if (map?.hub) {
-    // Never boot a combat session on the hub yard (coop Start Match race used to)
+  } else if (map?.hub && !bonuses.hub) {
+    // Combat GameProvider accidentally still on hub (Start Match race) —
+    // never keep hub for a real match. HubShell passes bonuses.hub so it
+    // can stay on Shanty City without inheriting Pie Yard mystery box state.
     const mid = loadSavedMapId() || DEFAULT_MAP_ID;
-    // Never use hub id for combat — Pie Yard / saved combat only
     map = getMap(mid === 'campHub' ? DEFAULT_MAP_ID : mid);
     setActiveMap(map.id);
   }

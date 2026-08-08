@@ -151,11 +151,13 @@ const PROP_PARKOUR = {
     solid: true,
   },
   bunkerExterior: {
+    /** Visual is roof + boarded openings — walls come from map.WALLS.
+     *  A filled AABB here made a giant invisible block around the shell. */
     w: 11.4,
     d: 10.4,
     topFromBase: 3.55,
-    solidH: 3.55,
-    solid: true,
+    solidH: 0.35,
+    solid: false,
   },
   panelFlat: {
     w: 3.9,

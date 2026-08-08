@@ -23,7 +23,7 @@ const campHub = {
   name: 'Shanty City',
   blurb: 'Rundown scrap town. Talk to survivors. Deploy when ready.',
   hub: true,
-  worldBound: B - 0.5,
+  worldBound: B + 0.25,
   theme: 'camp',
   outdoor: true,
   WALL_THICKNESS: T,
@@ -39,6 +39,7 @@ const campHub = {
   SPAWN_POINTS: [],
   PLAYER_SPAWN: { x: 0, y: 0, z: -14 },
   MYSTERY_BOX: null,
+  MYSTERY_BOX_SPOTS: [],
   DEPLOY_PAD: { x: 2, z: 12, r: 2.4 },
   FLOORS: [
     // Dirt / packed mud base

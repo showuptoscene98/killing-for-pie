@@ -269,7 +269,7 @@ const camp = {
   id: 'camp',
   name: 'Pie Yard',
   blurb: 'Combat map — dirt yard + pie factory pad outside the bunker. Not the Safehouse hub.',
-  worldBound: 14.5,
+  worldBound: 15.5,
   theme: 'camp',
   outdoor: true,
   WALL_THICKNESS: T,
@@ -292,7 +292,8 @@ const camp = {
     { position: [-3.8, 0, -10.5], rotation: [0, 0.35, 0], room: 'spawn' },
     { position: [-11.2, 0, 3.5], rotation: [0, Math.PI / 2, 0], room: 'west' },
     { position: [11.2, 0, 3.5], rotation: [0, -Math.PI / 2, 0], room: 'east' },
-    { position: [0, 0, 13.2], rotation: [0, Math.PI, 0], room: 'north' },
+    // Clear of the north shed solid at [0, 0, 13.5]
+    { position: [-4.2, 0, 12.5], rotation: [0, Math.PI, 0], room: 'north' },
   ],
   FLOORS: [
     // Front yard dirt

@@ -407,18 +407,17 @@ function MysteryBoxMesh({ boxDef }) {
   useFrame((_, dt) => {
     const box = stateRef.current?.mysteryBox;
     if (!root.current) return;
-
-    const pos = box?.position || boxDef?.position;
-    const rot = box?.rotation || boxDef?.rotation || [0, 0, 0];
-    if (!pos) {
+    // Map must define a box — never draw leftover combat state on hub
+    if (!boxDef || !box?.position) {
       root.current.visible = false;
       return;
     }
+
+    const pos = box.position;
+    const rot = box.rotation || boxDef.rotation || [0, 0, 0];
     root.current.visible = true;
     root.current.position.set(pos[0], pos[1] || 0, pos[2]);
     root.current.rotation.set(rot[0] || 0, rot[1] || 0, rot[2] || 0);
-
-    if (!box) return;
     const open = box.phase === 'spinning' || box.phase === 'offer';
     if (lid.current) {
       const target = open ? -1.05 : 0;
@@ -448,7 +447,7 @@ function MysteryBoxMesh({ boxDef }) {
     }
   });
 
-  if (!boxDef && !stateRef) return null;
+  if (!boxDef) return null;
 
   return (
     <group ref={root}>
@@ -2258,7 +2257,7 @@ export default function MapWorld() {
         <WallBuyMesh key={wb.id} wb={wb} />
       ))}
 
-      <MysteryBoxMesh boxDef={map.MYSTERY_BOX} />
+      {map.MYSTERY_BOX ? <MysteryBoxMesh boxDef={map.MYSTERY_BOX} /> : null}
 
       {(map.props || []).map((p, i) => (
         <MapProp key={i} prop={p} />

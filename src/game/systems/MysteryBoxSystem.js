@@ -41,7 +41,8 @@ function applySpot(box, spot, index) {
 
 export function createMysteryBoxState(map = null) {
   const spots = getMysteryBoxSpots(map || getActiveMap());
-  const spot = spots[0] || null;
+  if (!spots.length) return null;
+  const spot = spots[0];
   return {
     phase: 'idle', // idle | spinning | offer
     spinTimer: 0,
@@ -52,8 +53,8 @@ export function createMysteryBoxState(map = null) {
     displayId: null,
     spotIndex: 0,
     usesSinceMove: 0,
-    position: spot ? [...spot.position] : [0, 0, 0],
-    rotation: spot ? [...(spot.rotation || [0, 0, 0])] : [0, 0, 0],
+    position: [...spot.position],
+    rotation: [...(spot.rotation || [0, 0, 0])],
     relocateFlash: 0,
   };
 }
