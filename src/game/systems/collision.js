@@ -664,6 +664,8 @@ export function separateFromPlayers(
   for (let i = 0; i < remotes.length; i++) {
     const r = remotes[i];
     if (!r || r.status === 'dead' || r.status === 'spectator') continue;
+    // Stand on / next to downed teammates while reviving
+    if (r.status === 'downed') continue;
     const ry = (r.y ?? r.position?.y ?? PLAYER.height) - PLAYER.height;
     if (Math.abs(ry - playerFeetY) > 1.35) continue;
     const rx = r.x ?? r.position?.x;

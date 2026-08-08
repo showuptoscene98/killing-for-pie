@@ -172,7 +172,11 @@ export default function Player({ onShoot }) {
     const feetY = state.position.y - PLAYER.height;
     const colliders = buildFrameColliders(doors, boarded);
 
-    // Transit reseat — pin to spawn until MapWorld remounts
+    // Transit reseat — pin to spawn until MapWorld remounts.
+    // Must tick down here: clients never run tickRound (host-only in ZombieManager).
+    if ((state._transitLock || 0) > 0) {
+      state._transitLock = Math.max(0, state._transitLock - clampedDt);
+    }
     const transitLocked = (state._transitLock || 0) > 0;
     if (transitLocked) {
       state.velocityX = 0;
@@ -369,21 +373,8 @@ function updateInteract(state, camera, remotesRef) {
       if (!r || r.status !== 'downed') continue;
       const dist = Math.hypot(r.x - origin.x, r.z - origin.z);
       if (dist > REVIVE.range || dist > bestDist) continue;
-      const to = new THREE.Vector3(r.x - origin.x, 0, r.z - origin.z);
-      if (to.lengthSq() < 0.0001) {
-        bestDist = dist;
-        best = {
-          type: 'revive',
-          id: r.id,
-          label: `Hold [F] to revive ${r.name || 'teammate'}`,
-        };
-        continue;
-      }
-      to.normalize();
-      const flat = tmp.clone();
-      flat.y = 0;
-      if (flat.lengthSq() > 0.0001) flat.normalize();
-      if (flat.dot(to) < 0.35) continue;
+      // Range-only — bodies are on the floor; aim cone drops the prompt and
+      // clears reviveTargetId, which loses to decay (0.85/s > gain).
       bestDist = dist;
       const pct = Math.round((r.reviveProgress || 0) * 100);
       best = {

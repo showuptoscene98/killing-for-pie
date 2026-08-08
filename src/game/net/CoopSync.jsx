@@ -566,8 +566,9 @@ function tickDownedAndRevives(peers, _hostId, _state, dt) {
       reviver.position.x - target.position.x,
       reviver.position.z - target.position.z
     );
-    if (dist > REVIVE.range) {
-      reviver.reviveTargetId = null;
+    // Client free-runs; host pose is sanitized — allow slack so we don't
+    // clear reviveTargetId every tick (decay 0.85/s beats intermittent gain).
+    if (dist > REVIVE.range + 2.2) {
       return;
     }
     beingRevived.add(tid);
