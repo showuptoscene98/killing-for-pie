@@ -257,7 +257,7 @@ export default function CoopSync() {
         // Outfit blobs are fat — only resend when the loadout actually changes.
         // Avoid stringify of the full loadout blob at 20Hz — fingerprint is enough.
         const loadout = state.outfitLoadout;
-        const outfitKey = `${state.outfitId}|${state.outfitColor}|${state.outfitGender}|${state.outfitYarmulke}|${loadout ? Object.keys(loadout).length : 0}|${loadout?.body || ''}|${loadout?.torso || ''}`;
+        const outfitKey = `${state.outfitId}|${state.outfitColor}|${state.outfitGender}|${state.outfitYarmulke}|${loadout ? Object.keys(loadout).length : 0}|${loadout?.body || ''}|${loadout?.tors || ''}`;
         const outfitChanged = outfitKey !== lastOutfitKey.current;
         if (outfitChanged) lastOutfitKey.current = outfitKey;
         const msg = {
@@ -802,6 +802,7 @@ function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
         state.reviveProgress = 0;
       }
     } else {
+      // Build remotes array for all OTHER players (not the local player)
       remotes.push({
         id: np.id,
         name: np.name,
@@ -825,6 +826,7 @@ function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
       });
     }
   });
+  // CRITICAL FIX: Update remotesRef so RemotePlayers component can render
   remotesRef.current = remotes;
 
   if (msg.matchOver) {
