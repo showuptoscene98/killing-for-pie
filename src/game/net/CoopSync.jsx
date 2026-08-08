@@ -11,6 +11,7 @@ import {
   packRooms,
   packWindows,
   revivePlayer,
+  respawnPlayerForRound,
 } from './coopState';
 import { fireHitscanFromRay } from '../weapons/WeaponSystem';
 import {
@@ -319,6 +320,48 @@ function tickHost({
     state.grounded = true;
   }
 
+  // Next round — bring back dead / late-join spectators / leftover downed
+  if (state._coopLastRound == null) {
+    state._coopLastRound = state.round;
+  } else if (
+    !state.coopMatchOver &&
+    state.round > state._coopLastRound
+  ) {
+    state._coopLastRound = state.round;
+    let slot = 0;
+    peerPlayers.current.forEach((p) => {
+      const i = slot++;
+      if (p.status === 'alive' && p.hp > 0) return;
+      respawnPlayerForRound(p, i);
+      const sp = session.players?.find((x) => x.id === p.id);
+      if (sp) sp.spectator = false;
+    });
+    const hostIdEarly = state.coopLocalId;
+    const hostPeer = peerPlayers.current.get(hostIdEarly);
+    if (
+      hostPeer?.status === 'alive' &&
+      (state.status === 'dead' ||
+        state.status === 'downed' ||
+        state.coopSpectating)
+    ) {
+      state.status = 'playing';
+      state.coopSpectating = false;
+      state.hp = hostPeer.hp;
+      state.maxHp = hostPeer.maxHp || state.maxHp;
+      state.bleedoutTimer = 0;
+      state.reviveProgress = 0;
+      state.reviveTargetId = null;
+      state.position.x = hostPeer.position.x;
+      state.position.y = hostPeer.position.y;
+      state.position.z = hostPeer.position.z;
+      state.floorY = Math.max(0, (hostPeer.position.y || 0) - 1.6);
+      state.velocityX = 0;
+      state.velocityZ = 0;
+      state.velocityY = 0;
+      state.grounded = true;
+    }
+  }
+
   const hostId = state.coopLocalId;
   const hostP = peerPlayers.current.get(hostId);
   if (hostP) {
@@ -351,7 +394,12 @@ function tickHost({
       hostP.position.y = state.position.y;
       hostP.position.z = state.position.z;
       hostP.yaw = state.yaw;
-    } else if (state.status === 'dead' && hostP.status !== 'spectator') {
+    } else if (
+      state.status === 'dead' &&
+      hostP.status !== 'spectator' &&
+      hostP.status !== 'alive'
+    ) {
+      // Don't re-kill a peer the round-start respawn just brought back
       hostP.status = 'dead';
       hostP.hp = 0;
     }
@@ -604,14 +652,24 @@ function syncHostLocalFromPeer(state, hostP) {
     state.hp = 0;
     state.bleedoutTimer = hostP.bleedoutTimer || 0;
     state.reviveProgress = hostP.reviveProgress || 0;
-  } else if (hostP.status === 'alive' && state.status === 'downed') {
+  } else if (
+    hostP.status === 'alive' &&
+    (state.status === 'downed' || state.status === 'dead' || state.coopSpectating)
+  ) {
     state.status = 'playing';
+    state.coopSpectating = false;
     state.hp = hostP.hp;
     state.maxHp = hostP.maxHp || state.maxHp;
     state.bleedoutTimer = 0;
     state.reviveProgress = 0;
     state.reviveTargetId = null;
     state.damageCooldown = hostP.damageCooldown || 0;
+    if (typeof hostP.position?.x === 'number') {
+      state.position.x = hostP.position.x;
+      state.position.y = hostP.position.y;
+      state.position.z = hostP.position.z;
+      state.floorY = Math.max(0, (hostP.position.y || 0) - 1.6);
+    }
   } else if (hostP.status === 'dead' && state.status !== 'dead') {
     state.status = 'dead';
     state.hp = 0;
@@ -779,9 +837,15 @@ function applyHostSnap(msg, stateRef, zombiesRef, remotesRef) {
         state.bleedoutTimer = np.bleedoutTimer || 0;
         state.reviveProgress = np.reviveProgress || 0;
         if (wasPlaying) document.exitPointerLock?.();
-      } else if (np.status === 'alive' && (state.status === 'downed' || state.status === 'dead')) {
-        // Teammate revived us
+      } else if (
+        np.status === 'alive' &&
+        (state.status === 'downed' ||
+          state.status === 'dead' ||
+          state.coopSpectating)
+      ) {
+        // Teammate revived us / next-round respawn
         state.status = 'playing';
+        state.coopSpectating = false;
         state.hp = np.hp;
         state.maxHp = np.maxHp || state.maxHp;
         state.bleedoutTimer = 0;

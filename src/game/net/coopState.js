@@ -68,6 +68,28 @@ export function revivePlayer(p) {
   p.regenCooldown = REVIVE.invulnAfter;
 }
 
+/** Full round-start bring-back for dead / spectator / downed peers. */
+export function respawnPlayerForRound(p, slotIndex = 0) {
+  if (!p) return;
+  const off = spawnOffset(slotIndex);
+  const spawn = getActiveMap().PLAYER_SPAWN || { x: 0, y: 0, z: 0 };
+  p.status = 'alive';
+  p.hp = p.maxHp;
+  p.bleedoutTimer = 0;
+  p.reviveProgress = 0;
+  p.reviveTargetId = null;
+  p.reloading = false;
+  p.reloadTimer = 0;
+  p.fireCooldown = 0;
+  p.muzzleFlash = 0;
+  p.damageCooldown = REVIVE.invulnAfter;
+  p.regenCooldown = REVIVE.invulnAfter;
+  p.position.x = spawn.x + off.x;
+  p.position.y = (spawn.y || 0) + PLAYER.height;
+  p.position.z = spawn.z + off.z;
+  p._lastInputAt = 0;
+}
+
 export function snapshotPlayerNet(p) {
   const slot = p.weapons?.[p.activeWeapon];
   return {

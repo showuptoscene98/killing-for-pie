@@ -178,7 +178,7 @@ export default function HUD() {
         {hud.status === 'downed'
           ? `Bleedout ${Math.ceil(hud.bleedoutTimer || 0)}s · teammates hold F to revive`
           : spectating
-            ? `[ ] or ← → cycle player · Esc menu when match ends`
+            ? `Spectating · respawn next round · [ ] cycle player · Esc menu`
             : 'WASD move · Mouse aim · LMB shoot · RMB scope · Space jump · Shift sprint · Ctrl slide · R reload · F buy/revive · Esc pause'}
       </div>
     </div>

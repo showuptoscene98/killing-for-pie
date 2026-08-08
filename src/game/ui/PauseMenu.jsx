@@ -81,7 +81,7 @@ export default function PauseMenu({ onResume, onCamp, onMenu }) {
               )}
             </div>
             <p className="hub-invite-hint">
-              Friends can join mid-match with this code (spectate until the next deploy). Keep this
+              Friends can join mid-match with this code (spectate until the next round). Keep this
               tab open.
             </p>
           </div>
