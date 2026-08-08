@@ -13,6 +13,7 @@ function wallColor(theme, material) {
   if (material === 'barn') return '#6a4830';
   if (theme === 'camp') return DD.plank;
   if (theme === 'farm') return '#7a5a38';
+  if (theme === 'butcher') return '#5a3830';
   if (theme === 'city') return '#7a7468';
   if (theme === 'suburb') return '#8a7a62';
   return DD.stone;
@@ -48,17 +49,21 @@ function Wall({ x, z, w, d, theme, material, y = 0, h, soft = false }) {
       ? '#5a564c'
       : theme === 'suburb'
         ? '#6a5a48'
-        : theme === 'camp' || theme === 'farm'
-          ? DD.plankDark
-          : DD.stoneDark;
+        : theme === 'butcher'
+          ? '#3a2018'
+          : theme === 'camp' || theme === 'farm'
+            ? DD.plankDark
+            : DD.stoneDark;
   const base =
     theme === 'city'
       ? '#4a4840'
       : theme === 'suburb'
         ? '#4a4034'
-        : theme === 'camp' || theme === 'farm'
-          ? '#3a2a18'
-          : DD.stoneDark;
+        : theme === 'butcher'
+          ? '#2a1814'
+          : theme === 'camp' || theme === 'farm'
+            ? '#3a2a18'
+            : DD.stoneDark;
   const thick = Math.min(w, d);
   const long = Math.max(w, d);
   const alongX = w >= d;
@@ -184,27 +189,31 @@ function Horizon({ theme, outdoor, bound }) {
       ? '#3a3630'
       : theme === 'farm'
         ? '#354028'
-        : theme === 'suburb'
-          ? '#3a4030'
-          : '#3a3228'
+        : theme === 'butcher'
+          ? '#2a1814'
+          : theme === 'suburb'
+            ? '#3a4030'
+            : '#3a3228'
     : DD.void;
   const sil = useMemo(() => {
     if (!outdoor) return [];
     const out = [];
     const R = bound + 10;
-    const count = theme === 'city' ? 8 : theme === 'farm' ? 6 : theme === 'suburb' ? 7 : 5;
+    const count =
+      theme === 'city' ? 8 : theme === 'farm' ? 6 : theme === 'suburb' ? 7 : theme === 'butcher' ? 6 : 5;
     for (let i = 0; i < count; i++) {
       const a = (i / count) * Math.PI * 2 + 0.15;
       const farmHill = theme === 'farm';
       const suburb = theme === 'suburb';
+      const butcher = theme === 'butcher';
       out.push({
         x: Math.cos(a) * R,
         z: Math.sin(a) * R,
-        w: theme === 'city' ? 4 + (i % 3) : farmHill ? 7 + (i % 3) : suburb ? 5 + (i % 2) : 9,
-        h: theme === 'city' ? 7 + (i % 5) : farmHill ? 1.8 + (i % 3) * 0.4 : suburb ? 3.2 + (i % 3) * 0.6 : 2.4,
+        w: theme === 'city' ? 4 + (i % 3) : farmHill || butcher ? 7 + (i % 3) : suburb ? 5 + (i % 2) : 9,
+        h: theme === 'city' ? 7 + (i % 5) : farmHill ? 1.8 + (i % 3) * 0.4 : butcher ? 2.2 + (i % 3) * 0.5 : suburb ? 3.2 + (i % 3) * 0.6 : 2.4,
         d: theme === 'city' ? 2 : suburb ? 3 : 4,
         yaw: -a + Math.PI / 2,
-        color: theme === 'city' ? '#4a4640' : farmHill ? '#3a4830' : suburb ? '#5a5040' : '#4a4034',
+        color: theme === 'city' ? '#4a4640' : farmHill ? '#3a4830' : butcher ? '#3a2820' : suburb ? '#5a5040' : '#4a4034',
       });
     }
     return out;
@@ -1315,6 +1324,196 @@ function CornStalk({ position }) {
   );
 }
 
+/** Twisted dead tree — optional zombie hanging from a branch. */
+function DeadTree({ position, yaw = 0, hang = true }) {
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      <mesh position={[0, 1.35, 0]} castShadow>
+        <cylinderGeometry args={[0.14, 0.22, 2.7, 7]} />
+        <Toon color="#3a3028" />
+      </mesh>
+      <mesh position={[0.55, 2.55, 0.1]} rotation={[0, 0.2, 0.85]} castShadow>
+        <cylinderGeometry args={[0.06, 0.09, 1.5, 6]} />
+        <Toon color="#4a3830" />
+      </mesh>
+      <mesh position={[-0.45, 2.4, -0.15]} rotation={[0.15, -0.3, -0.7]} castShadow>
+        <cylinderGeometry args={[0.05, 0.08, 1.2, 6]} />
+        <Toon color="#3a2820" />
+      </mesh>
+      <mesh position={[0.15, 2.9, -0.35]} rotation={[-0.4, 0.1, 0.25]} castShadow>
+        <cylinderGeometry args={[0.04, 0.06, 0.9, 5]} />
+        <Toon color="#4a3830" />
+      </mesh>
+      {hang && (
+        <group position={[0.95, 2.15, 0.15]} rotation={[0.15, 0.4, 0.2]}>
+          {/* rope */}
+          <mesh position={[0, 0.55, 0]}>
+            <cylinderGeometry args={[0.018, 0.018, 0.7, 5]} />
+            <Toon color="#6a5038" />
+          </mesh>
+          <HangingZombieBody upright />
+        </group>
+      )}
+    </group>
+  );
+}
+
+/** Shared corpse silhouette — upright (tree) or inverted (hook). */
+function HangingZombieBody({ upright = false }) {
+  const skin = DD.sick;
+  const rot = DD.rot;
+  const cloth = '#4a3028';
+  return (
+    <group rotation={upright ? [0.15, 0.2, 0.08] : [Math.PI, 0.25, 0.1]} position={upright ? [0, 0, 0] : [0, -0.05, 0]}>
+      {/* torso */}
+      <mesh position={[0, upright ? -0.35 : 0.55, 0]} castShadow>
+        <boxGeometry args={[0.42, 0.55, 0.24]} />
+        <Toon color={cloth} />
+      </mesh>
+      {/* head */}
+      <mesh position={[0, upright ? -0.78 : 0.98, 0.02]} castShadow>
+        <boxGeometry args={[0.26, 0.28, 0.26]} />
+        <Toon color={skin} />
+      </mesh>
+      <mesh position={[-0.06, upright ? -0.8 : 1.0, 0.14]}>
+        <boxGeometry args={[0.05, 0.04, 0.03]} />
+        <Toon color={DD.ink} />
+      </mesh>
+      <mesh position={[0.06, upright ? -0.8 : 1.0, 0.14]}>
+        <boxGeometry args={[0.05, 0.04, 0.03]} />
+        <Toon color={DD.ink} />
+      </mesh>
+      {/* arms */}
+      <mesh
+        position={[-0.32, upright ? -0.4 : 0.5, 0]}
+        rotation={[0.4, 0, upright ? 0.5 : -0.35]}
+        castShadow
+      >
+        <boxGeometry args={[0.12, 0.55, 0.12]} />
+        <Toon color={skin} />
+      </mesh>
+      <mesh
+        position={[0.32, upright ? -0.35 : 0.48, 0.05]}
+        rotation={[-0.3, 0, upright ? -0.6 : 0.45]}
+        castShadow
+      >
+        <boxGeometry args={[0.12, 0.55, 0.12]} />
+        <Toon color={skin} />
+      </mesh>
+      {/* legs */}
+      <mesh
+        position={[-0.1, upright ? 0.15 : 0.05, 0]}
+        rotation={[upright ? 0.1 : 0.2, 0, -0.08]}
+        castShadow
+      >
+        <boxGeometry args={[0.14, 0.65, 0.14]} />
+        <Toon color={rot} />
+      </mesh>
+      <mesh
+        position={[0.12, upright ? 0.12 : 0.02, 0.02]}
+        rotation={[upright ? -0.05 : -0.15, 0, 0.12]}
+        castShadow
+      >
+        <boxGeometry args={[0.14, 0.65, 0.14]} />
+        <Toon color={rot} />
+      </mesh>
+      {/* blood drip */}
+      <mesh position={[0.05, upright ? -0.55 : 0.75, 0.14]}>
+        <boxGeometry args={[0.08, 0.18, 0.04]} />
+        <Toon color={DD.blood} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Ceiling/rail meat hook — zombie hanging by the feet. */
+function MeatHook({ position, yaw = 0 }) {
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      {/* vertical post */}
+      <mesh position={[0, 1.7, 0]} castShadow>
+        <cylinderGeometry args={[0.07, 0.09, 3.4, 8]} />
+        <Toon color={DD.metalDark} />
+      </mesh>
+      {/* cross arm */}
+      <mesh position={[0.55, 3.25, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 1.2, 6]} />
+        <Toon color={DD.metal} />
+      </mesh>
+      {/* hook curve */}
+      <mesh position={[1.05, 3.05, 0]} castShadow>
+        <torusGeometry args={[0.12, 0.035, 6, 10, Math.PI * 1.2]} />
+        <Toon color="#8a9098" />
+      </mesh>
+      {/* chain */}
+      <mesh position={[1.05, 2.75, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.35, 5]} />
+        <Toon color="#6a6e74" />
+      </mesh>
+      {/* ankle bind */}
+      <mesh position={[1.05, 2.52, 0]}>
+        <torusGeometry args={[0.08, 0.025, 5, 8]} />
+        <Toon color="#5a5048" />
+      </mesh>
+      <group position={[1.05, 2.45, 0]}>
+        <HangingZombieBody upright={false} />
+      </group>
+      {/* blood pool under */}
+      <mesh position={[1.0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0.4]} receiveShadow>
+        <circleGeometry args={[0.55, 10]} />
+        <Toon color={DD.blood} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Low butcher block / chopping table. */
+function ButcherBlock({ position, yaw = 0 }) {
+  return (
+    <group position={position} rotation={[0, yaw, 0]}>
+      <mesh position={[0, 0.45, 0]} castShadow>
+        <boxGeometry args={[1.4, 0.9, 0.85]} />
+        <Toon color="#5a4030" />
+      </mesh>
+      <mesh position={[0, 0.95, 0]} castShadow>
+        <boxGeometry args={[1.55, 0.12, 0.95]} />
+        <Toon color="#3a2820" />
+      </mesh>
+      <mesh position={[0.2, 1.05, 0.1]} rotation={[0.1, 0.3, 0]}>
+        <boxGeometry args={[0.45, 0.08, 0.28]} />
+        <Toon color={DD.flesh} />
+      </mesh>
+      <mesh position={[-0.35, 1.04, -0.15]} rotation={[0, -0.4, 0.05]}>
+        <boxGeometry args={[0.35, 0.06, 0.22]} />
+        <Toon color={DD.blood} />
+      </mesh>
+      {/* cleaver */}
+      <mesh position={[0.45, 1.12, -0.2]} rotation={[0, 0.5, 0.15]} castShadow>
+        <boxGeometry args={[0.35, 0.02, 0.18]} />
+        <Toon color={DD.metal} />
+      </mesh>
+      <mesh position={[0.62, 1.1, -0.2]} rotation={[0, 0.5, 0]}>
+        <boxGeometry args={[0.08, 0.04, 0.04]} />
+        <Toon color="#4a3020" />
+      </mesh>
+    </group>
+  );
+}
+
+function BloodPool({ position, scale = 1 }) {
+  return (
+    <mesh
+      position={[position[0], 0.018, position[2]]}
+      rotation={[-Math.PI / 2, 0, (position[0] + position[2]) * 0.3]}
+      receiveShadow
+      scale={scale}
+    >
+      <circleGeometry args={[0.7, 12]} />
+      <Toon color={DD.blood} />
+    </mesh>
+  );
+}
+
 /** Sealed bunker seen from outside — roof, boarded windows, locked door */
 function BunkerExterior({ position }) {
   const boarded = [
@@ -1590,6 +1789,20 @@ function MapProp({ prop }) {
       return <Scarecrow position={prop.position} yaw={prop.yaw || 0} />;
     case 'cornStalk':
       return <CornStalk position={prop.position} />;
+    case 'deadTree':
+      return (
+        <DeadTree
+          position={prop.position}
+          yaw={prop.yaw || 0}
+          hang={prop.hang !== false}
+        />
+      );
+    case 'meatHook':
+      return <MeatHook position={prop.position} yaw={prop.yaw || 0} />;
+    case 'butcherBlock':
+      return <ButcherBlock position={prop.position} yaw={prop.yaw || 0} />;
+    case 'bloodPool':
+      return <BloodPool position={prop.position} scale={prop.scale || 1} />;
     default:
       return null;
   }

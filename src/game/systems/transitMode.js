@@ -19,6 +19,7 @@ export const TRANSIT_MAP_ORDER = [
   'sofia',
   'farm',
   'house',
+  'slaughterHouse',
   'camp',
 ];
 

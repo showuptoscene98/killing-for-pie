@@ -5,6 +5,7 @@ import nacht from './maps/nacht';
 import campHub from './maps/campHub';
 import farm from './maps/farm';
 import house from './maps/house';
+import slaughterHouse from './maps/slaughterHouse';
 
 import combatMapIds from './combatMapIds.json';
 
@@ -16,6 +17,7 @@ export const MAPS = {
   campHub,
   farm,
   house,
+  slaughterHouse,
 };
 
 /** Deployable map ids, shared with the LAN relay. Hub excluded. */
