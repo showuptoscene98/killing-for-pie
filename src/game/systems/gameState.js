@@ -97,7 +97,7 @@ export function createInitialGameState(bonuses = DEFAULT_BONUSES) {
     outfitGender: bonuses.outfitGender || 'male',
     outfitYarmulke: !!bonuses.outfitYarmulke,
     outfitLoadout: bonuses.outfitLoadout || null,
-    mysteryBox: createMysteryBoxState(),
+    mysteryBox: createMysteryBoxState(map),
     pies: [],
     powerups: createPowerupState(),
   };

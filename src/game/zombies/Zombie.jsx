@@ -172,6 +172,22 @@ const BOSS_THEME_PALETTES = {
     hit: DD.bloodLite,
     accent: '#e8c84a',
   },
+  butcher: {
+    body: '#4a2018',
+    bodyDark: '#2a100c',
+    head: '#8a5850',
+    hit: DD.bloodLite,
+    accent: '#c03028',
+  },
+};
+
+const BOSS_LABELS = {
+  camp: 'PIE TITAN',
+  stone: 'BUNKER BRUTE',
+  suburb: 'HOUSE HORROR',
+  farm: 'MAD COW',
+  city: 'STREET KING',
+  butcher: 'HEAD BUTCHER',
 };
 
 function paletteFor(z) {
@@ -194,7 +210,18 @@ function paletteFor(z) {
   }
   if (z?.variant === 'farmer') {
     const i = seed % FARMER_PALETTES.length;
-    return FARMER_PALETTES[Math.abs(i)];
+    const base = FARMER_PALETTES[Math.abs(i)];
+    if (z.boss && z.bossTheme === 'butcher') {
+      return {
+        ...base,
+        body: '#4a2018',
+        bodyDark: '#2a100c',
+        shirt: '#6a1810',
+        accent: '#c03028',
+      };
+    }
+    if (z.boss) return { ...base, body: '#3a2818', bodyDark: '#1a140e' };
+    return base;
   }
   if (z?.boss) {
     return BOSS_THEME_PALETTES[z.bossTheme] || BOSS_THEME_PALETTES.stone;
@@ -245,9 +272,14 @@ export default function ZombieModel({ zombiesRef, index }) {
   const farmerExtras = useRef();
   const bossExtras = useRef();
   const bossAccentMat = useRef();
+  const bossCamp = useRef();
+  const bossStone = useRef();
+  const bossSuburb = useRef();
+  const bossButcher = useRef();
   const hitLit = useRef(false);
   const lastKey = useRef('');
   const gaitRef = useRef(null);
+  const [bossHud, setBossHud] = useState(null);
 
   useFrame((_, dt) => {
     const z = zombiesRef.current[index];
@@ -255,6 +287,7 @@ export default function ZombieModel({ zombiesRef, index }) {
 
     if (!z) {
       root.current.visible = false;
+      if (bossHud) setBossHud(null);
       return;
     }
 
@@ -315,13 +348,27 @@ export default function ZombieModel({ zombiesRef, index }) {
       if (bracelet.current) bracelet.current.visible = z.variant === 'gypsy';
       if (cowExtras.current) cowExtras.current.visible = z.variant === 'cow';
       if (farmerExtras.current) farmerExtras.current.visible = z.variant === 'farmer';
-      const showBossTrim =
-        !!z.boss && z.variant !== 'gypsy' && z.variant !== 'cow' && z.variant !== 'farmer';
-      if (bossExtras.current) bossExtras.current.visible = showBossTrim;
+      // Crown / spikes on every boss; theme props stack on top
+      if (bossExtras.current) bossExtras.current.visible = !!z.boss;
+      if (bossCamp.current) bossCamp.current.visible = !!z.boss && z.bossTheme === 'camp';
+      if (bossStone.current) bossStone.current.visible = !!z.boss && z.bossTheme === 'stone';
+      if (bossSuburb.current) bossSuburb.current.visible = !!z.boss && z.bossTheme === 'suburb';
+      if (bossButcher.current) bossButcher.current.visible = !!z.boss && z.bossTheme === 'butcher';
       if (bossAccentMat.current && pal.accent) {
         bossAccentMat.current.color.set(pal.accent);
         bossAccentMat.current.emissive?.set?.(pal.accent);
       }
+    }
+
+    if (z.boss && !z.dead) {
+      const pct = Math.max(0, z.hp / (z.maxHp || 1));
+      const label = BOSS_LABELS[z.bossTheme] || 'BOSS';
+      const next = `${label}|${pct.toFixed(2)}`;
+      if (!bossHud || bossHud.key !== next) {
+        setBossHud({ key: next, label, pct });
+      }
+    } else if (bossHud) {
+      setBossHud(null);
     }
 
     const gait = gaitRef.current || gaitFromSeed(seed);
@@ -569,6 +616,52 @@ export default function ZombieModel({ zombiesRef, index }) {
   return (
     <group ref={root} visible={false}>
       <CrawlerBark zombiesRef={zombiesRef} index={index} />
+      {bossHud ? (
+        <Html
+          position={[0, 2.35, 0]}
+          center
+          distanceFactor={10}
+          style={{ pointerEvents: 'none' }}
+          zIndexRange={[30, 0]}
+        >
+          <div
+            style={{
+              fontFamily: 'Impact, Haettenschweiler, sans-serif',
+              letterSpacing: 1.5,
+              textAlign: 'center',
+              minWidth: 120,
+            }}
+          >
+            <div
+              style={{
+                color: '#f0d060',
+                fontSize: 13,
+                textShadow: '0 1px 0 #000, 0 0 6px #000',
+                marginBottom: 3,
+              }}
+            >
+              {bossHud.label}
+            </div>
+            <div
+              style={{
+                height: 6,
+                background: 'rgba(0,0,0,0.65)',
+                border: '1px solid #2a1810',
+                borderRadius: 2,
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.round(bossHud.pct * 100)}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg,#8a2020,#e05030)',
+                }}
+              />
+            </div>
+          </div>
+        </Html>
+      ) : null}
       <group ref={torso} key={style}>
         <BodyPart
           position={[0, 1.02, 0]}
@@ -706,7 +799,7 @@ export default function ZombieModel({ zombiesRef, index }) {
           </mesh>
         </group>
 
-        {/* Themed boss trim — camp / stone / suburb (variant bosses use their own extras) */}
+        {/* Boss crown — every map */}
         <group ref={bossExtras} visible={false}>
           <mesh position={[-0.28, 1.35, 0]} rotation={[0, 0, 0.45]} castShadow>
             <coneGeometry args={[0.08, 0.28, 5]} />
@@ -722,16 +815,86 @@ export default function ZombieModel({ zombiesRef, index }) {
             <Toon color={DD.rust} emissive={DD.rust} emissiveIntensity={0.45} />
           </mesh>
           <mesh position={[0, 1.78, 0]} castShadow>
-            <cylinderGeometry args={[0.12, 0.16, 0.12, 6]} />
+            <cylinderGeometry args={[0.14, 0.18, 0.14, 6]} />
             <Toon color={DD.bone} />
           </mesh>
-          <mesh position={[0, 1.9, 0]}>
-            <coneGeometry args={[0.06, 0.18, 5]} />
+          <mesh position={[0, 1.94, 0]}>
+            <coneGeometry args={[0.07, 0.22, 5]} />
             <Toon color={DD.bone} />
           </mesh>
           <mesh position={[0, 1.12, 0.16]}>
-            <boxGeometry args={[0.42, 0.1, 0.06]} />
+            <boxGeometry args={[0.48, 0.12, 0.07]} />
             <Toon color={DD.ink} />
+          </mesh>
+        </group>
+
+        {/* Camp — pie tin helm */}
+        <group ref={bossCamp} visible={false}>
+          <mesh position={[0, 1.92, 0]} castShadow>
+            <cylinderGeometry args={[0.28, 0.3, 0.1, 12]} />
+            <Toon color="#c9a227" emissive="#8a7018" emissiveIntensity={0.25} />
+          </mesh>
+          <mesh position={[0, 1.86, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.36, 14]} />
+            <Toon color="#b89840" />
+          </mesh>
+          <mesh position={[0.32, 1.55, 0.1]} rotation={[0.3, 0, 0.4]} castShadow>
+            <boxGeometry args={[0.08, 0.08, 0.55]} />
+            <Toon color="#e8d8a0" />
+          </mesh>
+        </group>
+
+        {/* Stone / bunker — scrap helm */}
+        <group ref={bossStone} visible={false}>
+          <mesh position={[0, 1.88, 0]} castShadow>
+            <boxGeometry args={[0.42, 0.22, 0.4]} />
+            <Toon color="#6a6458" />
+          </mesh>
+          <mesh position={[0, 1.78, 0.22]}>
+            <boxGeometry args={[0.36, 0.08, 0.06]} />
+            <Toon color="#8a3a28" emissive="#5a2010" emissiveIntensity={0.3} />
+          </mesh>
+        </group>
+
+        {/* Suburb — spiked bat */}
+        <group ref={bossSuburb} visible={false}>
+          <mesh position={[0.48, 1.05, 0.12]} rotation={[0.35, 0, 0.2]} castShadow>
+            <cylinderGeometry args={[0.035, 0.05, 1.05, 6]} />
+            <Toon color="#5a4030" />
+          </mesh>
+          <mesh position={[0.55, 1.5, 0.28]} rotation={[0.35, 0, 0]}>
+            <boxGeometry args={[0.12, 0.18, 0.12]} />
+            <Toon color="#3a3028" />
+          </mesh>
+          {[0, 1, 2].map((i) => (
+            <mesh
+              key={i}
+              position={[0.55 + i * 0.02, 1.58 + i * 0.04, 0.32 + i * 0.02]}
+              rotation={[0.35, 0, 0]}
+            >
+              <coneGeometry args={[0.025, 0.1, 4]} />
+              <Toon color="#8a8a90" />
+            </mesh>
+          ))}
+        </group>
+
+        {/* Butcher — bloody cleaver + apron smear */}
+        <group ref={bossButcher} visible={false}>
+          <mesh position={[0.5, 1.15, 0.1]} rotation={[0.2, 0.3, 0.5]} castShadow>
+            <boxGeometry args={[0.08, 0.55, 0.18]} />
+            <Toon color="#8a9498" />
+          </mesh>
+          <mesh position={[0.5, 0.82, 0.1]} rotation={[0.2, 0.3, 0.5]}>
+            <boxGeometry args={[0.06, 0.28, 0.08]} />
+            <Toon color="#3a2818" />
+          </mesh>
+          <mesh position={[0, 1.05, 0.18]}>
+            <boxGeometry args={[0.5, 0.55, 0.04]} />
+            <Toon color="#e8e0d8" />
+          </mesh>
+          <mesh position={[0.08, 0.95, 0.2]}>
+            <boxGeometry args={[0.2, 0.25, 0.03]} />
+            <Toon color="#8a2020" />
           </mesh>
         </group>
 

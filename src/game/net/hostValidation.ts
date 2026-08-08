@@ -38,6 +38,7 @@ interface MapLike {
   WALLBUYS?: Array<{ id: string; position: number[] }>;
   WINDOWS?: Array<{ id: string; position: number[] }>;
   MYSTERY_BOX?: { position: number[] } | null;
+  MYSTERY_BOX_SPOTS?: Array<{ position: number[] }>;
 }
 
 /** A slide is the fastest legitimate movement; the margin covers camp buffs. */
@@ -165,7 +166,9 @@ export function sanitizeFireRay(
 /** Where the map says an interactable actually is, or null if it has no such id. */
 export function interactTargetPosition(
   map: MapLike | null | undefined,
-  prompt: InteractPrompt | null | undefined
+  prompt: InteractPrompt | null | undefined,
+  /** Live mystery-box world position when the box has relocated. */
+  mysteryPos?: number[] | null
 ): Vec3 | null {
   if (!map || !prompt) return null;
 
@@ -176,7 +179,12 @@ export function interactTargetPosition(
   if (prompt.type === 'door') position = find(map.DOORS)?.position;
   else if (prompt.type === 'wallbuy') position = find(map.WALLBUYS)?.position;
   else if (prompt.type === 'window') position = find(map.WINDOWS)?.position;
-  else if (prompt.type === 'mystery') position = map.MYSTERY_BOX?.position;
+  else if (prompt.type === 'mystery') {
+    position =
+      mysteryPos && mysteryPos.length >= 3
+        ? mysteryPos
+        : map.MYSTERY_BOX?.position;
+  }
 
   if (!position || position.length < 3) return null;
   const [x, y, z] = position as [number, number, number];
@@ -191,12 +199,13 @@ export function interactTargetPosition(
 export function canPlayerInteract(
   map: MapLike | null | undefined,
   prompt: InteractPrompt | null | undefined,
-  playerPos: Partial<Vec3> | null | undefined
+  playerPos: Partial<Vec3> | null | undefined,
+  mysteryPos?: number[] | null
 ): boolean {
   if (!prompt?.type) return false;
   if (!RANGED_INTERACTS.has(prompt.type)) return true;
 
-  const target = interactTargetPosition(map, prompt);
+  const target = interactTargetPosition(map, prompt, mysteryPos);
   // A ranged interact naming something the map does not have is never valid.
   if (!target) return false;
   if (!isFiniteVec3(playerPos)) return false;

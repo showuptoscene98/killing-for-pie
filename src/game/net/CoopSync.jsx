@@ -21,7 +21,7 @@ import {
   MYSTERY_BOX_COST,
 } from '../weapons/weaponDefs';
 import { getActiveMap } from '../map/activeMap';
-import { trySpinMysteryBox } from '../systems/MysteryBoxSystem';
+import { trySpinMysteryBox, completeMysteryBoxUse } from '../systems/MysteryBoxSystem';
 import { tryRepairBoard } from '../systems/WindowSystem';
 import { recordWindowFullyRebuilt, recordAchievementEvent } from '../camp/campData';
 import { queueAchievementBanners } from '../camp/achievements';
@@ -484,7 +484,7 @@ function tickHost({
     }
     // Clients author their own prompts, so without this a peer could open any
     // door or buy off any wall from wherever it happened to be standing.
-    if (!canPlayerInteract(getActiveMap(), it.prompt, p.position)) continue;
+    if (!canPlayerInteract(getActiveMap(), it.prompt, p.position, state.mysteryBox?.position)) continue;
     applyInteractForPlayer(state, p, it.prompt);
   }
 
@@ -569,6 +569,11 @@ function tickHost({
             resultId: state.mysteryBox.resultId,
             offerTimer: state.mysteryBox.offerTimer,
             spinTimer: state.mysteryBox.spinTimer,
+            spotIndex: state.mysteryBox.spotIndex,
+            position: state.mysteryBox.position,
+            rotation: state.mysteryBox.rotation,
+            relocateFlash: state.mysteryBox.relocateFlash,
+            usesSinceMove: state.mysteryBox.usesSinceMove,
           }
         : null,
       pies: (state.pies || [])
@@ -976,9 +981,7 @@ function applyInteractForPlayer(worldState, player, prompt) {
       );
       player.weapons = given.weapons;
       player.activeWeapon = given.activeWeapon;
-      worldState.mysteryBox.phase = 'idle';
-      worldState.mysteryBox.resultId = null;
-      worldState.mysteryBox.displayId = null;
+      completeMysteryBoxUse(worldState);
     }
   }
 }

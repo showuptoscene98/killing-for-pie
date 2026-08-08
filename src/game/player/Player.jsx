@@ -35,6 +35,7 @@ import {
   trySpinMysteryBox,
   tryTakeMysteryWeapon,
   mysteryBoxPrompt,
+  mysteryBoxWorldPos,
 } from '../systems/MysteryBoxSystem';
 import { spawnPieProjectile } from '../weapons/PieProjectiles';
 import {
@@ -274,7 +275,7 @@ export default function Player({ onShoot }) {
       tickHealthRegen(state, clampedDt, true);
     }
 
-    if (!coopClient) tickMysteryBox(state.mysteryBox, clampedDt);
+    if (!coopClient) tickMysteryBox(state, clampedDt);
 
     const flags = consumeFlags();
     handleWeaponActions(state, flags, clampedDt);
@@ -359,7 +360,8 @@ function handleWeaponActions(state, flags, dt) {
 }
 
 function updateInteract(state, camera, remotesRef) {
-  const { DOORS, WALLBUYS, MYSTERY_BOX, WINDOWS } = getActiveMap();
+  const map = getActiveMap();
+  const { DOORS, WALLBUYS, MYSTERY_BOX, WINDOWS } = map;
   camera.getWorldDirection(tmp);
   const origin = camera.position;
   let best = null;
@@ -444,22 +446,21 @@ function updateInteract(state, camera, remotesRef) {
     }
   });
 
-  // Mystery box — mid hall
-  {
-    const boxPos = new THREE.Vector3(
-      MYSTERY_BOX.position[0],
-      (MYSTERY_BOX.position[1] || 0) + 1.0,
-      MYSTERY_BOX.position[2]
-    );
-    const to = boxPos.clone().sub(origin);
-    const dist = to.length();
-    if (dist <= bestDist) {
-      to.normalize();
-      if (tmp.dot(to) >= 0.55) {
-        const prompt = mysteryBoxPrompt(state);
-        if (prompt) {
-          bestDist = dist;
-          best = prompt;
+  // Mystery box — live spot (can relocate mid-match)
+  if (MYSTERY_BOX || state.mysteryBox?.position) {
+    const live = mysteryBoxWorldPos(state, map);
+    if (live) {
+      const boxPos = new THREE.Vector3(live.x, live.y, live.z);
+      const to = boxPos.clone().sub(origin);
+      const dist = to.length();
+      if (dist <= bestDist) {
+        to.normalize();
+        if (tmp.dot(to) >= 0.55) {
+          const prompt = mysteryBoxPrompt(state);
+          if (prompt) {
+            bestDist = dist;
+            best = prompt;
+          }
         }
       }
     }

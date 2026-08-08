@@ -63,9 +63,9 @@ export const ROUND = {
   /** Boss HP = regular round HP × this */
   bossHpMult: 10,
   bossSpeedMult: 0.72,
-  bossScale: 1.85,
+  bossScale: 2.25,
   /** Body radius vs walls / player (regular zombies use 0.35) */
-  bossRadius: 0.62,
+  bossRadius: 0.72,
   bossAttackDamage: 40,
   bossAttackEngage: 1.85,
   bossAttackHitRange: 2.15,

@@ -282,7 +282,15 @@ const sofia = {
   MYSTERY_BOX: {
     position: [0, 0, -6],
     rotation: [0, 0, 0],
+    room: 'spawn',
   },
+  MYSTERY_BOX_SPOTS: [
+    { position: [0, 0, -6], rotation: [0, 0, 0], room: 'spawn' },
+    { position: [4.2, 0, -11], rotation: [0, -0.4, 0], room: 'spawn' },
+    { position: [-11.2, 0, 3.5], rotation: [0, Math.PI / 2, 0], room: 'west' },
+    { position: [11.2, 0, 3.5], rotation: [0, -Math.PI / 2, 0], room: 'east' },
+    { position: [0, 0, 13.2], rotation: [0, Math.PI, 0], room: 'north' },
+  ],
   FLOORS: [
     // Asphalt plaza
     { x: 0, z: -8.5, w: 15, d: 13, color: '#3a3a38' },

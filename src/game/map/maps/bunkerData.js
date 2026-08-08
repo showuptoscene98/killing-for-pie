@@ -296,10 +296,17 @@ export const LIGHTS = [
   { position: [5, 3.2, 12], intensity: 0.5, distance: 8, color: '#8a3820' },
 ];
 
-/** Mystery box — center hall */
 export const MYSTERY_BOX = {
   id: 'mystery_box',
   position: [0, 0, -1.5],
   rotation: [0, 0, 0],
   room: 'spawn',
 };
+
+export const MYSTERY_BOX_SPOTS = [
+  { position: [0, 0, -1.5], rotation: [0, 0, 0], room: 'spawn' },
+  { position: [-3.5, 0, -9], rotation: [0, 0.4, 0], room: 'spawn' },
+  { position: [-11, 0, 2], rotation: [0, Math.PI / 2, 0], room: 'west' },
+  { position: [11, 0, 2], rotation: [0, -Math.PI / 2, 0], room: 'east' },
+  { position: [0, 0, 11], rotation: [0, Math.PI, 0], room: 'north' },
+];

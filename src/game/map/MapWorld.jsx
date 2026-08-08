@@ -398,44 +398,141 @@ function WallBuyMesh({ wb }) {
 
 function MysteryBoxMesh({ boxDef }) {
   const { stateRef } = useGameApi();
+  const root = useRef();
   const lid = useRef();
+  const beam = useRef();
+  const qGlow = useRef();
+  const teddy = useRef();
 
   useFrame((_, dt) => {
-    const box = stateRef.current.mysteryBox;
+    const box = stateRef.current?.mysteryBox;
+    if (!root.current) return;
+
+    const pos = box?.position || boxDef?.position;
+    const rot = box?.rotation || boxDef?.rotation || [0, 0, 0];
+    if (!pos) {
+      root.current.visible = false;
+      return;
+    }
+    root.current.visible = true;
+    root.current.position.set(pos[0], pos[1] || 0, pos[2]);
+    root.current.rotation.set(rot[0] || 0, rot[1] || 0, rot[2] || 0);
+
     if (!box) return;
     const open = box.phase === 'spinning' || box.phase === 'offer';
     if (lid.current) {
-      const target = open ? -0.95 : 0;
-      lid.current.rotation.x += (target - lid.current.rotation.x) * Math.min(1, dt * 6);
+      const target = open ? -1.05 : 0;
+      lid.current.rotation.x += (target - lid.current.rotation.x) * Math.min(1, dt * 7);
+    }
+    if (beam.current) {
+      const on = open || box.relocateFlash > 0;
+      beam.current.visible = on;
+      if (on) {
+        const pulse = 0.85 + Math.sin(performance.now() * 0.008) * 0.2;
+        beam.current.material.opacity = (open ? 0.35 : 0.55) * pulse;
+        beam.current.scale.y = open ? 1 : 1.25;
+      }
+    }
+    if (qGlow.current) {
+      const em = open ? 1.4 : 0.55 + Math.sin(performance.now() * 0.004) * 0.15;
+      if (qGlow.current.material) qGlow.current.material.emissiveIntensity = em;
+    }
+    if (teddy.current) {
+      const flash = box.relocateFlash || 0;
+      teddy.current.visible = flash > 0;
+      if (flash > 0) {
+        teddy.current.position.y = 1.85 + (1 - flash / 2.8) * 0.6;
+        teddy.current.rotation.y += dt * 4;
+        teddy.current.scale.setScalar(0.7 + Math.min(1, flash) * 0.4);
+      }
     }
   });
 
-  if (!boxDef) return null;
+  if (!boxDef && !stateRef) return null;
 
   return (
-    <group position={boxDef.position} rotation={boxDef.rotation}>
-      <mesh position={[0, 0.35, 0]} castShadow>
-        <boxGeometry args={[1.35, 0.7, 0.95]} />
-        <Toon color={DD.wood} />
+    <group ref={root}>
+      {/* Pedestal — carved wood */}
+      <mesh position={[0, 0.18, 0]} castShadow receiveShadow>
+        <boxGeometry args={[1.45, 0.36, 1.05]} />
+        <Toon color="#3a2a1c" />
       </mesh>
-      <mesh position={[0, 0.72, 0]} castShadow>
-        <boxGeometry args={[1.2, 0.12, 0.8]} />
-        <Toon color={DD.plankDark} />
+      <mesh position={[0, 0.4, 0]} castShadow>
+        <boxGeometry args={[1.28, 0.12, 0.9]} />
+        <Toon color="#c9a227" emissive="#8a7018" emissiveIntensity={0.2} />
       </mesh>
-      <mesh position={[0, 1.05, 0]} castShadow>
-        <boxGeometry args={[1.05, 0.55, 0.7]} />
-        <Toon color="#3a2a48" />
+      {/* Corner brass feet */}
+      {[
+        [-0.58, 0.06, -0.4],
+        [0.58, 0.06, -0.4],
+        [-0.58, 0.06, 0.4],
+        [0.58, 0.06, 0.4],
+      ].map((p, i) => (
+        <mesh key={i} position={p} castShadow>
+          <boxGeometry args={[0.16, 0.12, 0.16]} />
+          <Toon color="#d4b040" />
+        </mesh>
+      ))}
+      {/* Body — deep violet with gold trim */}
+      <mesh position={[0, 0.78, 0]} castShadow>
+        <boxGeometry args={[1.12, 0.62, 0.78]} />
+        <Toon color="#2a1840" emissive="#5a2080" emissiveIntensity={0.35} />
       </mesh>
-      <group ref={lid} position={[0, 1.32, -0.28]}>
-        <mesh position={[0, 0.04, 0.28]} castShadow>
-          <boxGeometry args={[1.08, 0.08, 0.72]} />
-          <Toon color="#5a3a6a" />
+      <mesh position={[0, 0.78, 0.4]}>
+        <boxGeometry args={[1.14, 0.64, 0.04]} />
+        <Toon color="#e8c84a" emissive="#c9a227" emissiveIntensity={0.25} />
+      </mesh>
+      <mesh position={[0, 0.78, -0.4]}>
+        <boxGeometry args={[1.14, 0.64, 0.04]} />
+        <Toon color="#e8c84a" />
+      </mesh>
+      {/* Hinged lid */}
+      <group ref={lid} position={[0, 1.1, -0.32]}>
+        <mesh position={[0, 0.05, 0.32]} castShadow>
+          <boxGeometry args={[1.16, 0.1, 0.8]} />
+          <Toon color="#4a2868" emissive="#7a30a0" emissiveIntensity={0.4} />
+        </mesh>
+        <mesh position={[0, 0.12, 0.32]}>
+          <boxGeometry args={[0.9, 0.04, 0.55]} />
+          <Toon color="#e8c84a" />
         </mesh>
       </group>
-      <mesh position={[0, 1.05, 0.36]}>
-        <planeGeometry args={[0.35, 0.4]} />
-        <meshBasicMaterial color="#e8c84a" />
+      {/* Floating ? plaque */}
+      <mesh ref={qGlow} position={[0, 0.82, 0.42]}>
+        <planeGeometry args={[0.42, 0.48]} />
+        <meshStandardMaterial
+          color="#f0d060"
+          emissive="#f0c040"
+          emissiveIntensity={0.7}
+          roughness={0.35}
+          metalness={0.4}
+        />
       </mesh>
+      {/* Vertical beam */}
+      <mesh ref={beam} position={[0, 3.2, 0]} visible={false}>
+        <cylinderGeometry args={[0.12, 0.28, 4.2, 10]} />
+        <meshBasicMaterial color="#c86aff" transparent opacity={0.35} depthWrite={false} />
+      </mesh>
+      {/* Teddy flash when relocating */}
+      <group ref={teddy} position={[0, 1.85, 0]} visible={false}>
+        <mesh castShadow>
+          <sphereGeometry args={[0.22, 10, 10]} />
+          <Toon color="#6a4028" />
+        </mesh>
+        <mesh position={[-0.16, 0.18, 0]}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <Toon color="#5a3420" />
+        </mesh>
+        <mesh position={[0.16, 0.18, 0]}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <Toon color="#5a3420" />
+        </mesh>
+        <mesh position={[0, -0.05, 0.18]}>
+          <sphereGeometry args={[0.06, 6, 6]} />
+          <Toon color="#2a1810" />
+        </mesh>
+      </group>
+      <pointLight position={[0, 1.4, 0.5]} color="#b060ff" intensity={1.1} distance={4.5} />
       <MysteryWeaponSpin stateRef={stateRef} />
     </group>
   );

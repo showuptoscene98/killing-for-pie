@@ -390,7 +390,15 @@ const nacht = {
   MYSTERY_BOX: {
     position: [0, F2, 4.5],
     rotation: [0, 0, 0],
+    room: 'spawn',
   },
+  MYSTERY_BOX_SPOTS: [
+    { position: [0, F2, 4.5], rotation: [0, 0, 0], room: 'spawn' },
+    { position: [0, 0, -7.5], rotation: [0, 0, 0], room: 'spawn' },
+    { position: [-6.5, 0, -2], rotation: [0, Math.PI / 2, 0], room: 'west' },
+    { position: [6.5, 0, -2], rotation: [0, -Math.PI / 2, 0], room: 'east' },
+    { position: [-5, F2, -6], rotation: [0, 0.5, 0], room: 'spawn' },
+  ],
   props: [
     { type: 'crate', position: [2.8, 0.42, -7.5] },
     { type: 'crate', position: [2.8, 1.27, -7.5], color: 'wood' },

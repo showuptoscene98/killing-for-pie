@@ -505,9 +505,20 @@ const house = {
   FLOORS,
   LIGHTS,
   MYSTERY_BOX: {
-    position: [0, F2, -3.8],
+    position: [0, 0, -8.5],
     rotation: [0, 0, 0],
+    room: 'spawn',
   },
+  MYSTERY_BOX_SPOTS: [
+    { position: [0, 0, -8.5], rotation: [0, 0, 0], room: 'spawn' },
+    { position: [0, F2, -3.8], rotation: [0, 0, 0], room: 'lobby' },
+    { position: [5, 0, -3], rotation: [0, -0.4, 0], room: 'living' },
+    { position: [-5.5, 0, -3], rotation: [0, 0.4, 0], room: 'garage' },
+    { position: [-4, 0, 4.5], rotation: [0, Math.PI, 0], room: 'kitchen' },
+    { position: [4, 0, 4.5], rotation: [0, Math.PI, 0], room: 'dining' },
+    { position: [-4, F2, 4.5], rotation: [0, Math.PI, 0], room: 'kids' },
+    { position: [4, F2, 4.5], rotation: [0, Math.PI, 0], room: 'master' },
+  ],
   props: [
     // Yard
     { type: 'crate', position: [-6.5, 0.42, -9.5], color: 'wood' },

@@ -86,11 +86,14 @@ function pickZombieVariant(map) {
   return map.zombieVariant || null;
 }
 
-/** Boss look follows map theme — farm/city reuse special variants. */
+/** Boss look follows map theme — farm/city/butcher reuse special variants. */
 function bossStyleForMap(map) {
   const theme = map?.theme || 'stone';
   if (theme === 'farm') {
     return { variant: 'cow', bossTheme: 'farm' };
+  }
+  if (theme === 'butcher') {
+    return { variant: 'farmer', bossTheme: 'butcher' };
   }
   if (theme === 'city') {
     return { variant: 'gypsy', bossTheme: 'city' };

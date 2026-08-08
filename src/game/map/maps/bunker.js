@@ -22,7 +22,15 @@ const bunker = {
   MYSTERY_BOX: {
     position: [0, 0, 0.5],
     rotation: [0, 0, 0],
+    room: 'spawn',
   },
+  MYSTERY_BOX_SPOTS: [
+    { position: [0, 0, 0.5], rotation: [0, 0, 0], room: 'spawn' },
+    { position: [-3.5, 0, -9], rotation: [0, 0.4, 0], room: 'spawn' },
+    { position: [-11, 0, 2], rotation: [0, Math.PI / 2, 0], room: 'west' },
+    { position: [11, 0, 2], rotation: [0, -Math.PI / 2, 0], room: 'east' },
+    { position: [0, 0, 11], rotation: [0, Math.PI, 0], room: 'north' },
+  ],
   props: [
     { type: 'crate', position: [3.2, 0.42, -8] },
     { type: 'crate', position: [3.2, 1.27, -8], color: 'wood' },

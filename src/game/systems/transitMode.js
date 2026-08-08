@@ -59,7 +59,7 @@ export function rebuildMapRuntime(state, mapId) {
   state.rooms = rooms;
   state.doors = doors;
   state.windows = initWindowState();
-  state.mysteryBox = createMysteryBoxState();
+  state.mysteryBox = createMysteryBoxState(map);
   state.pies = [];
   state.powerups = createPowerupState();
   state.repairAcc = 0;
